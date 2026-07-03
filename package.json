@@ -1,0 +1,24 @@
+{
+  "name": "escriba",
+  "version": "0.1.0",
+  "description": "App mobile de apoio a reuniões: grava, transcreve, sugere perguntas guiadas pela metodologia e entrega ata + documento de requisitos.",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "check": "node scripts/check-consistency.mjs",
+    "changelog": "node scripts/update-changelog.mjs",
+    "changelog:check": "node scripts/update-changelog.mjs --check",
+    "skills:index": "node scripts/update-skills-index.mjs",
+    "skills:index:check": "node scripts/update-skills-index.mjs --check",
+    "session": "node scripts/session-context.mjs",
+    "release": "node scripts/cut-release.mjs",
+    "release:check": "node scripts/cut-release.mjs --check",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
+    "typescript": "^6.0.3"
+  }
+}
