@@ -114,3 +114,24 @@ Template — copy, set today's date, append at the bottom:
   spikes Android: 2h background e STT nativo pt-BR) e Fatia E (UI expo-router + tela de
   configurações de provedores/chaves usando o catálogo).
 - **Refs:** CHG-002 (Fatia C), ADR-005.
+
+## 2026-07-03 — Fatias D e E: casca Expo, gravação/STT ao vivo e UI completa (CHG-002)
+
+- **Did:** TDD Red → Green das Fatias D/E: `RecordingService` (segmentos por pause/resume; stop
+  encerra mesmo com gravador falhando), `LiveTranscriptionService` (auto-restart quando a sessão
+  nativa expira; erro degrada sem parar a gravação), `SpeakerService` (renomear falante regenera
+  artefatos; ata ganhou linha Participantes), `filterMeetings` e `SessionPanel` (RTL). Scaffold
+  Expo SDK 57: app.json com permissões/plugins, package.json main expo-router/entry, adapters finos
+  em `src/expo/`, composition root (`container.ts` + `ServicesProvider`), rotas: home/busca, nova
+  reunião (consentimento LGPD + aviso de diarização), sessão (painel + loop de 30s do LiveAssist),
+  resultados (abas ata/requisitos/transcrição, renomear falantes, refinar agora, export via share
+  sheet), configurações (provedor por capacidade + chave por provedor). Jest multi-projeto
+  (ts-jest + jest-expo). 141 testes, 99%/90,6% branches, tsc limpo.
+- **Learned:** jest-expo 57 exige Jest 29 (30 quebra com `clearMocksOnScope`); RNTL v14 tem
+  `render`/`fireEvent` assíncronos e queries só via `screen`; presets em `projects` inline não
+  resolvem — usar arquivos de config por projeto. Adapters nativos como passthrough de ports mantém
+  toda a lógica testável em Node.
+- **Next:** build dev client Android (`npx expo run:android`) e os dois spikes em aparelho físico:
+  NFR-01 (gravação 2h em background) e A-02 (qualidade do STT nativo pt-BR); depois revisão do
+  stakeholder ponta a ponta e fechar o checklist do CHG-002 para arquivar.
+- **Refs:** CHG-002 (Fatias D/E), C-05, NFR-01, A-02.

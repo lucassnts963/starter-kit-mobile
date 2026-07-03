@@ -1,4 +1,5 @@
 import { transition, type MeetingSessionState } from '../domain/meeting-session';
+import { distinctSpeakers } from '../domain/transcript';
 import { resolveMeetingType } from '../domain/templates';
 import { buildMinutes } from '../domain/artifacts/minutes-builder';
 import { buildRequirementsDoc } from '../domain/artifacts/requirements-builder';
@@ -66,7 +67,11 @@ export class RefinementService {
       await this.deps.transcripts.replaceKind(meeting.id, 'final', finalSegments);
 
       const points = await this.deps.points.listByMeeting(meeting.id);
-      const meta = { title: meeting.title, date: meeting.createdAt.slice(0, 10) };
+      const meta = {
+        title: meeting.title,
+        date: meeting.createdAt.slice(0, 10),
+        speakers: distinctSpeakers(finalSegments),
+      };
       await this.deps.artifacts.save(meeting.id, 'minutes', buildMinutes(meta, type, points), this.deps.clock.nowIso());
       if (type.output === 'minutes+requirements') {
         await this.deps.artifacts.save(

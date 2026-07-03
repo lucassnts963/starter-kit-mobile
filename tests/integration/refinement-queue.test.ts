@@ -96,6 +96,7 @@ describe('refinement queue offline-first (TEST-11)', () => {
     const minutes = await artifacts.findByMeetingAndKind('m1', 'minutes');
     const requirements = await artifacts.findByMeetingAndKind('m1', 'requirements');
     expect(minutes?.markdown).toContain('Kickoff');
+    expect(minutes?.markdown).toContain('Falante 1'); // participantes da diarização na ata (REQ-12)
     expect(requirements?.markdown).toContain('## Open Questions');
 
     // fila vazia, status final

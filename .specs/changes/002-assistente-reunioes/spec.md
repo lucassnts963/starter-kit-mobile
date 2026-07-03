@@ -88,8 +88,12 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | Adapter | `src/adapters/llm/*.ts` | `LlmProvider` (OpenAI, Anthropic): `suggestQuestions()`, `extractPoints()`, `generateMinutes()` com instrução anti-alucinação (REQ-04/05/06/13) |
 | Adapter | `src/adapters/secure-keys.ts` | Chaves via expo-secure-store, **uma por provedor** (REQ-11) |
 | Service | `src/services/meeting-session-service.ts` | Orquestra sessão: gravação, STT ao vivo, extração periódica, encerramento → fila de refinamento (REQ-01..07) |
-| Service | `src/services/recording-service.ts` | expo-audio: gravação em segmentos, background mode, recuperação pós-crash (REQ-01, NFR-01) |
-| Service | `src/services/live-transcription-service.ts` | expo-speech-recognition com auto-restart de sessão; alimenta domain (REQ-02) |
+| Service | `src/services/recording-service.ts` | Gravação em segmentos sobre o port `RecorderPort` (pause fecha segmento; resume abre outro); falha do gravador não corrompe a sessão (REQ-01, NFR-01) |
+| Service | `src/services/live-transcription-service.ts` | STT nativo sobre o port `SpeechRecognizerPort`: auto-restart quando a sessão nativa expira (iOS ~1min), erro degrada para somente-gravação; resultados finais viram segmentos draft (REQ-02, NFR-06) |
+| Service | `src/services/speaker-service.ts` | Renomear falante: propaga nos segmentos finais e REGENERA ata/requisitos pelos builders (REQ-12) |
+| Service | `src/services/history-filter.ts` | Filtro puro de histórico por título/data (REQ-09, memoizado na UI) |
+| Adapter (Expo) | `src/expo/*.ts` | Implementações finas dos ports sobre APIs nativas: expo-audio (RecorderPort), expo-speech-recognition (SpeechRecognizerPort), expo-sqlite (SqlDatabase), expo-secure-store (ApiKeyStore), expo-file-system (AudioFileStore), expo-sharing (export). Passthrough sem lógica — validados nos spikes em aparelho (fora do coverage de CI, justificado em Notes) |
+| UI | `src/components/*.tsx` | Componentes apresentacionais testáveis (RTL/jest-expo): painel de sessão com indicador de gravação, cobertura, perguntas (TEST-14) |
 | Service | `src/services/refinement-service.ts` | Fila offline-first: re-transcrição + geração de artefatos quando houver rede (REQ-03/06/07, NFR-06) |
 | Service | `src/services/live-assist-service.ts` | Loop de assistência ao vivo: delta da transcrição → LLM extrai candidatos → âncoras validadas (inválidos descartados) → cobertura + perguntas; erro de LLM degrada para somente-gravação sem exceção (REQ-04/05, NFR-06) |
 | UI | `app/` (expo-router) | Home/histórico, nova reunião (tipo + consentimento), sessão (painel de condução), resultados/export com renomeação de falantes (REQ-04/05/09/10/12) |
@@ -194,6 +198,9 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | TEST-20 | `deep delete removes data and audio` | integration | Excluir reunião apaga linhas em cascata E os arquivos de áudio via port de arquivos (REQ-10) |
 | TEST-21 | `refinement failure returns session to ended` | unit | Transição refining → ended (`refinementFailed`) permite re-tentar sem corromper a máquina de estados (NFR-06) |
 | TEST-22 | `live assist extraction loop` | integration | Delta da transcrição → candidatos do LLM; sem âncora válida = descartado; erro de LLM → `ok:false` sem exceção e nada salvo (REQ-04/05, NFR-06) |
+| TEST-23 | `segmented recording orchestration` | integration | start/pause/resume/stop geram segmentos na ordem e persistem; falha do gravador no start não transiciona a sessão (REQ-01) |
+| TEST-24 | `live transcription auto-restart` | integration | Fim da sessão nativa de STT → reinício automático; resultados finais viram drafts com timestamps; erro degrada sem parar a gravação; indisponível → modo somente-gravação (REQ-02, NFR-06) |
+| TEST-25 | `speaker rename regenerates artifacts` | integration | Renomear falante atualiza segmentos finais e regenera ata (com participantes) e requisitos (REQ-12) |
 
 ### Test Files
 
@@ -209,8 +216,6 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | `tests/integration/repositories.test.ts` | TEST-10 |
 | `tests/integration/refinement-queue.test.ts` | TEST-11 |
 | `tests/integration/adapters.test.ts` | TEST-12 |
-| `src/services/history-filter.test.ts` | TEST-13 |
-| `app/session.test.tsx` | TEST-14 |
 | `src/domain/transcript.test.ts` (speakers) | TEST-15, TEST-16 |
 | `tests/integration/provider-catalog.test.ts` | TEST-17 |
 | `tests/integration/elevenlabs-scribe.test.ts` | TEST-18 |
@@ -218,6 +223,11 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | `src/domain/meeting-session.test.ts` (falha de refinamento) | TEST-21 |
 | `src/services/live-assist-service.test.ts` | TEST-22, TEST-12 (parte LLM) |
 | `tests/integration/openai-whisper.test.ts` | TEST-18 (contrato do 2º provedor STT, sem diarização) |
+| `src/services/recording-service.test.ts` | TEST-23 |
+| `src/services/live-transcription-service.test.ts` | TEST-24 |
+| `src/services/speaker-service.test.ts` | TEST-25 |
+| `src/services/history-filter.test.ts` | TEST-13 |
+| `src/components/SessionPanel.test.tsx` | TEST-14 (RTL/jest-expo) |
 
 ---
 
@@ -247,6 +257,18 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
   catálogo com capability flags e seleção persistida (settings, migration v2), `LiveAssistService`
   (delta → candidatos → âncoras validadas → cobertura/perguntas; degradação graciosa). 116 testes,
   cobertura 99,4%/97,7% branches. Falta: Fatias D–E (Expo: gravação, STT nativo, UI).
+- **Progresso Fatias D–E (2026-07-03):** TDD Red → Green — TEST-13/14/23/24/25: `RecordingService`
+  (gravação segmentada, falha de gravador não corrompe sessão), `LiveTranscriptionService`
+  (auto-restart do STT nativo, degradação sem exceção), `SpeakerService` (renomear falante regenera
+  ata com Participantes + requisitos), `filterMeetings`, `SessionPanel` testado com RTL/jest-expo.
+  Casca Expo completa: app.json (permissões Android/iOS, plugins), adapters finos em `src/expo/`
+  (expo-audio, expo-speech-recognition, expo-sqlite, expo-secure-store, expo-file-system, sharing),
+  composition root + rotas expo-router (home/busca, nova reunião com consentimento e aviso de
+  diarização, sessão ao vivo, resultados com abas/renomeação/export, configurações de provedores e
+  chaves). 141 testes, cobertura 99%/90,6% branches; `tsc --noEmit` limpo incluindo `app/`.
+  **Pendente de aparelho (Android — C-05):** spikes NFR-01 (2h background) e A-02 (qualidade STT
+  nativo pt-BR); rotas `app/` e `src/expo/` são passthrough fino validado nesses spikes (fora do
+  coverage de CI — justificativa: sem lógica de negócio, só wiring de APIs nativas).
 - **Revisão do stakeholder (2026-07-03):** multi-provedor com ElevenLabs (REQ-13, ADR-005),
   diarização Must (REQ-12, amendment ADR-004), Android primeiro (C-05), chaves por provedor (REQ-11).
   Suporte a `speaker` no domínio adicionado via TDD (TEST-15/16). Nome "Escriba" conflitado — ver

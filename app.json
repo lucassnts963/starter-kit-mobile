@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Escriba",
+    "slug": "escriba",
+    "version": "0.1.0",
+    "scheme": "escriba",
+    "orientation": "portrait",
+    "newArchEnabled": true,
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "app.escriba",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE"
+      ]
+    },
+    "ios": {
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-secure-store",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "O Escriba grava o áudio das suas reuniões para transcrever e gerar a ata."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "O Escriba usa o microfone para transcrever a reunião em tempo real.",
+          "speechRecognitionPermission": "O Escriba usa o reconhecimento de fala para o rascunho ao vivo da reunião."
+        }
+      ]
+    ]
+  }
+}

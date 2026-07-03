@@ -5,6 +5,10 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "build": "eas build",
+    "lint": "expo lint",
     "check": "node scripts/check-consistency.mjs",
     "changelog": "node scripts/update-changelog.mjs",
     "changelog:check": "node scripts/update-changelog.mjs --check",
@@ -16,10 +20,32 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
+    "@testing-library/react-native": "^14.0.1",
+    "@types/jest": "^29.5.14",
     "@types/node": "^26.1.0",
-    "jest": "^30.4.2",
+    "@types/react": "^19.2.17",
+    "babel-preset-expo": "^57.0.1",
+    "jest": "~29.7.0",
+    "jest-expo": "^57.0.1",
     "ts-jest": "^29.4.11",
-    "typescript": "^6.0.3"
-  }
+    "typescript": "~5.9"
+  },
+  "dependencies": {
+    "expo": "^57.0.2",
+    "expo-audio": "^57.0.0",
+    "expo-constants": "^57.0.3",
+    "expo-file-system": "^57.0.0",
+    "expo-linking": "^57.0.1",
+    "expo-router": "^57.0.3",
+    "expo-secure-store": "^57.0.0",
+    "expo-sharing": "^57.0.2",
+    "expo-speech-recognition": "^56.0.1",
+    "expo-sqlite": "^57.0.0",
+    "expo-status-bar": "^57.0.0",
+    "react": "^19.2.7",
+    "react-native": "^0.86.0",
+    "react-native-safe-area-context": "^5.8.0",
+    "react-native-screens": "^4.25.2"
+  },
+  "main": "expo-router/entry"
 }

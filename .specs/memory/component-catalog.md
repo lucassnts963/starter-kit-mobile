@@ -23,11 +23,15 @@ This catalog prevents duplication and enables code reuse. Every entry describes 
 
 ## Components
 
-Components are UI elements (React, Vue, Svelte, etc.) in `src/components/`.
+UI em duas camadas: componentes apresentacionais **testáveis** em `src/components/` (RTL/jest-expo) e
+rotas finas em `app/` (expo-router — wiring de hooks, fora do coverage de CI). Adapters nativos finos
+em `src/expo/` (expo-audio, expo-speech-recognition, expo-sqlite, expo-secure-store, expo-file-system,
+expo-sharing) + composition root `src/expo/container.ts` e `ServicesProvider`/`useServices`.
 
 | Component | Path | Purpose | Props / Input | Example |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| `SessionPanel` | `src/components/SessionPanel.tsx` | Painel de condução: indicador de gravação sempre visível, cobertura, perguntas descartáveis, banner de degradação, controles | `type, status, degradedReason, draftText, assistLoading, coverage, suggestions, on*` | `<SessionPanel {...vm} />` |
+| Rotas | `app/index, new-meeting, session/[id], results/[id], settings` | Histórico+busca, criação (consentimento + aviso diarização), sessão ao vivo, resultados (abas, renomear falantes, export), provedores+chaves | — | expo-router file-based |
 
 <!-- 
 Template for new entries:
@@ -91,6 +95,10 @@ IA (SttBatchProvider — ADR-005) em `src/adapters/provider-ports.ts`.
 | `MeetingSessionService` | `src/services/meeting-session-service.ts` | Orquestra a sessão: transições persistidas, rascunho ao vivo, pontos ancorados, encerramento → fila | `createMeeting, start/pause/resume/end, addAudioSegment, addDraftSegment, addPoint, deleteMeeting` | `await session.end(meetingId)` |
 | `RefinementService` | `src/services/refinement-service.ts` | Fila offline-first: re-transcrição (falantes), builders de ata/requisitos, retry em falha | `processQueue` | `await refinement.processQueue()` |
 | `LiveAssistService` | `src/services/live-assist-service.ts` | Loop ao vivo: delta → LLM → âncoras validadas → cobertura + perguntas; degrada sem exceção | `processDelta(meetingId, type)` | `const r = await assist.processDelta(id, type)` |
+| `RecordingService` | `src/services/recording-service.ts` | Gravação segmentada sobre `RecorderPort` (pause fecha segmento, resume abre outro); stop encerra mesmo se o gravador falhar | `start/pause/resume/stop` | `await recording.pause(id)` |
+| `LiveTranscriptionService` | `src/services/live-transcription-service.ts` | STT nativo com auto-restart de sessão; erro → degradado sem parar a gravação; `status()` para a UI | `start, stop, status, flush` | `await live.start(id, 'pt-BR')` |
+| `SpeakerService` | `src/services/speaker-service.ts` | Renomear falante + regenerar ata/requisitos pelos builders | `listSpeakers, rename` | `await speakers.rename(id, 'Falante 1', 'Cliente')` |
+| `filterMeetings` | `src/services/history-filter.ts` | Filtro puro do histórico (título/data) — usar com `useMemo` | `(meetings, term) => MeetingRecord[]` | `useMemo(() => filterMeetings(all, q), [all, q])` |
 
 <!-- 
 Template for new entries:

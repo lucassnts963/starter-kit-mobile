@@ -4,15 +4,21 @@ import type { ExtractedPoint } from '../extracted-point';
 export interface MeetingMeta {
   title: string;
   date: string;
+  /** Falantes da diarização (REQ-12) — viram a linha "Participantes" da ata. */
+  speakers?: string[];
 }
 
 /**
  * Ata determinística (REQ-06, mitigação de alucinação): o Markdown é montado
- * exclusivamente dos títulos do template e dos pontos extraídos (ancorados na
- * transcrição). O LLM nunca escreve a ata "livre".
+ * exclusivamente dos títulos do template, dos participantes diarizados e dos pontos
+ * extraídos (ancorados na transcrição). O LLM nunca escreve a ata "livre".
  */
 export function buildMinutes(meta: MeetingMeta, type: MeetingType, points: ExtractedPoint[]): string {
-  const lines: string[] = [`# ${meta.title}`, '', `**${meta.date}**`, '', '---', ''];
+  const lines: string[] = [`# ${meta.title}`, '', `**${meta.date}**`, ''];
+  if (meta.speakers !== undefined && meta.speakers.length > 0) {
+    lines.push(`**Participantes:** ${meta.speakers.join(', ')}`, '');
+  }
+  lines.push('---', '');
   for (const section of type.sections) {
     lines.push(`## ${section.title}`, '');
     const sectionPoints = points.filter((p) => p.sectionId === section.id);

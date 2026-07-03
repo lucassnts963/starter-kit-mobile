@@ -47,4 +47,16 @@ describe('minutes builder completeness (TEST-07)', () => {
     expect(md).toContain('Reunião X');
     expect(md).toContain('2026-07-03');
   });
+
+  it('should list participants when speakers are provided (diarização, REQ-12)', () => {
+    const md = buildMinutes(
+      { title: 'Reunião X', date: '2026-07-03', speakers: ['Cliente – João', 'Falante 2'] },
+      type,
+      [],
+    );
+    expect(md).toContain('Participantes');
+    expect(md).toContain('Cliente – João, Falante 2');
+    // sem falantes, a linha não aparece
+    expect(buildMinutes({ title: 'Y', date: '2026-07-03' }, type, [])).not.toContain('Participantes');
+  });
 });
