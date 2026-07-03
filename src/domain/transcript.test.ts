@@ -4,6 +4,7 @@ import {
   hasFinal,
   fullText,
   distinctSpeakers,
+  labeledText,
   renameSpeaker,
   DraftSpeakerError,
   type TranscriptSegment,
@@ -92,6 +93,24 @@ describe('speakers on final segments (TEST-15, REQ-12)', () => {
   it('should return an empty speaker list when the provider did not diarize', () => {
     const segments = [spoken('f1', 'final', 'sem falantes')];
     expect(distinctSpeakers(segments)).toEqual([]);
+  });
+});
+
+describe('labeledText prefixes each line with the speaker (helps rename in the UI)', () => {
+  it('should prefix each final segment with its speaker, in chronological order', () => {
+    let segments: TranscriptSegment[] = [];
+    segments = addSegment(segments, spoken('f1', 'final', 'proposta aprovada', 'Falante 1', 0));
+    segments = addSegment(segments, spoken('f2', 'final', 'combinado', 'Falante 2', 1000));
+    segments = addSegment(segments, spoken('f3', 'final', 'ótimo', 'Falante 1', 2000));
+
+    expect(labeledText(segments, 'final')).toBe(
+      'Falante 1: proposta aprovada\nFalante 2: combinado\nFalante 1: ótimo',
+    );
+  });
+
+  it('should omit the prefix when the segment has no speaker (draft, or STT sem diarização)', () => {
+    const segments = [seg('d1', 'draft', 'rascunho sem falante')];
+    expect(labeledText(segments, 'draft')).toBe('rascunho sem falante');
   });
 });
 

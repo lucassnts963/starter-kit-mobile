@@ -6,3 +6,10 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# Expo prebuild — projeto gerenciado (Continuous Native Generation): regenerar com `npx expo prebuild`
+.expo/
+android/
+ios/
+
+.claude/scheduled_tasks.lock

@@ -53,6 +53,17 @@ export function fullText(segments: TranscriptSegment[], kind: TranscriptKind): s
     .join('\n');
 }
 
+/**
+ * Como `fullText`, mas prefixa cada linha com o falante (quando houver) — ajuda a UI de
+ * renomear falantes (REQ-12) a mostrar quem disse o quê, em vez de um bloco de texto sem atribuição.
+ */
+export function labeledText(segments: TranscriptSegment[], kind: TranscriptKind): string {
+  return segments
+    .filter((s) => s.kind === kind)
+    .map((s) => (s.speaker ? `${s.speaker}: ${s.text}` : s.text))
+    .join('\n');
+}
+
 /** Falantes distintos da transcrição refinada, na ordem da primeira fala (REQ-12). */
 export function distinctSpeakers(segments: TranscriptSegment[]): string[] {
   const speakers: string[] = [];

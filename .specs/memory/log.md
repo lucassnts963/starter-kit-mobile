@@ -135,3 +135,29 @@ Template — copy, set today's date, append at the bottom:
   NFR-01 (gravação 2h em background) e A-02 (qualidade do STT nativo pt-BR); depois revisão do
   stakeholder ponta a ponta e fechar o checklist do CHG-002 para arquivar.
 - **Refs:** CHG-002 (Fatias D/E), C-05, NFR-01, A-02.
+
+## 2026-07-03 — Primeiro build em aparelho físico + 2 bugs reais corrigidos (CHG-002)
+
+- **Did:** `npx expo run:android` funcionando pela primeira vez num Moto G15 real, depois de três
+  bloqueios de ambiente puramente locais desta máquina Windows (TRB-002/003/004 — hoisting do npm,
+  sandbox do agente bloqueando `Selector.open()` do JDK, NDK 27 + espaço no caminho do usuário).
+  Smoke test manual encontrou e corrigiu (TDD Red→Green) um bug real de produção: upload de áudio pro
+  STT quebrava com "Unsupported FormDataPart implementation" porque o `fetch` global do RN (via
+  `whatwg-fetch`) não entende o formato de arquivo nativo `{uri,name,type}` do `FormData` do RN
+  (TRB-005) — corrigido roteando corpos `FormData` por `XMLHttpRequest` em `createHttpClient`.
+  Melhorada a UX de renomear falante (aba Transcrição agora mostra `Falante N: texto` por linha, chip
+  em edição destacado). 146 testes, `tsc --noEmit` limpo (reconciliado `module`/`moduleResolution`
+  com o `extends: expo/tsconfig.base` que o Expo CLI injeta sozinho a cada build).
+- **Learned:** builds Android via as ferramentas Bash/PowerShell do próprio agente Claude Code
+  falham com "Unable to establish loopback connection" (Java NIO `Selector.open()` bloqueado pela
+  sandbox do harness) mesmo com `dangerouslyDisableSandbox` — build precisa rodar no terminal do
+  usuário. NDK 27 no Windows quebra link C++ (`ld.lld: undefined symbol` em libc++) quando o perfil do
+  usuário tem espaço no nome, porque o `clang++.exe` vira `CLANG_~1.EXE` (nome curto 8.3) e o Clang
+  decide compilar como C puro só pelo nome do executável — fix: copiar o NDK para um caminho sem
+  espaço e apontar via `android/local.properties`.
+- **Next:** repetir Spike A-02 falando direto no microfone (o teste feito foi condição difícil — áudio
+  indireto de baixa qualidade — o stakeholder quer repetir em condição normal antes do veredito);
+  rodar Spike NFR-01 (2h gravação em background) quando o aparelho estiver disponível; validar em
+  aparelho a correção de UX do `labeledText` (feita após o último rebuild desta sessão, ainda não
+  testada); depois fechar o checklist do CHG-002.
+- **Refs:** CHG-002, TRB-002, TRB-003, TRB-004, TRB-005.

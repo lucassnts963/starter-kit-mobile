@@ -12,7 +12,7 @@ import { RecordingService } from '../services/recording-service';
 import { LiveTranscriptionService } from '../services/live-transcription-service';
 import { SpeakerService } from '../services/speaker-service';
 import { createSttProvider, createLlmProvider } from '../adapters/provider-catalog';
-import type { HttpClient } from '../adapters/http';
+import { createHttpClient, type XhrLike } from '../adapters/http';
 import { openEscribaDatabase } from './expo-sqlite-database';
 import { secureKeyStore } from './secure-key-store';
 import { audioFileStore } from './audio-file-store';
@@ -35,7 +35,10 @@ export interface AppContainer {
   createRefinement(): Promise<RefinementService>;
 }
 
-const http: HttpClient = (url, init) => fetch(url, init as RequestInit);
+const http = createHttpClient({
+  fetchImpl: (url, init) => fetch(url, init as RequestInit),
+  xhrFactory: () => new XMLHttpRequest() as unknown as XhrLike,
+});
 
 const clock = { nowIso: () => new Date().toISOString() };
 const monotonic = { nowMs: () => Date.now() };

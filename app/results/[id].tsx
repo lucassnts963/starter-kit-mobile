@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useServices } from '../../src/expo/services-context';
 import { shareMarkdown } from '../../src/expo/share-markdown';
-import { fullText } from '../../src/domain/transcript';
+import { labeledText } from '../../src/domain/transcript';
 import type { MeetingRecord } from '../../src/db/repository/meeting-repository';
 
 type Tab = 'minutes' | 'requirements' | 'transcript';
@@ -27,7 +27,7 @@ export default function ResultsScreen() {
     setMinutes((await services.artifacts.findByMeetingAndKind(id, 'minutes'))?.markdown ?? null);
     setRequirements((await services.artifacts.findByMeetingAndKind(id, 'requirements'))?.markdown ?? null);
     const segments = await services.transcripts.listByMeeting(id);
-    setTranscript(fullText(segments, 'final') || fullText(segments, 'draft'));
+    setTranscript(labeledText(segments, 'final') || labeledText(segments, 'draft'));
     setSpeakers(await services.speakers.listSpeakers(id));
   }, [id, services]);
 
@@ -100,8 +100,14 @@ export default function ResultsScreen() {
           <Text style={styles.speakersTitle}>Falantes (toque para renomear):</Text>
           <View style={styles.speakerRow}>
             {speakers.map((s) => (
-              <Pressable key={s} style={styles.speakerChip} onPress={() => setRenaming({ from: s, to: '' })}>
-                <Text style={styles.speakerChipText}>{s}</Text>
+              <Pressable
+                key={s}
+                style={[styles.speakerChip, renaming?.from === s && styles.speakerChipActive]}
+                onPress={() => setRenaming({ from: s, to: '' })}
+              >
+                <Text style={renaming?.from === s ? styles.speakerChipTextActive : styles.speakerChipText}>
+                  {s}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -144,7 +150,9 @@ const styles = StyleSheet.create({
   speakersTitle: { fontWeight: '600', marginBottom: 6 },
   speakerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   speakerChip: { backgroundColor: '#eef3f8', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
+  speakerChipActive: { backgroundColor: '#2c3e50' },
   speakerChipText: { color: '#2c3e50' },
+  speakerChipTextActive: { color: 'white', fontWeight: 'bold' },
   renameRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
   renameInput: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8 },
   renameButton: { backgroundColor: '#2c3e50', borderRadius: 8, padding: 10, justifyContent: 'center' },

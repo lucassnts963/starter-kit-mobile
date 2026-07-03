@@ -279,3 +279,26 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
   Fatia D; não são automatizáveis no CI.
 - Decisões pendentes do stakeholder (nome do app, provedores padrão, plataforma do primeiro build,
   diarização) listadas em Open Questions dos requisitos — não bloqueiam as Fatias A/B.
+- **Build em aparelho físico + bugfixes (2026-07-03):** primeiro `npx expo run:android` bem-sucedido
+  num Moto G15 real, depois de resolver três bloqueios de ambiente puramente locais (documentados como
+  TRB-002 a TRB-004, nenhum é bug do projeto): hoisting do npm no Windows, sandbox das ferramentas do
+  agente bloqueando `Selector.open()` do JDK, e o NDK 27 quebrando link C++ por causa de espaço no
+  caminho do usuário Windows. Smoke test manual encontrou e corrigiu um bug real de produção
+  (TRB-005): o `fetch` global do RN (via `whatwg-fetch`) não sobe `FormData` no formato de arquivo
+  nativo do RN (`{uri,name,type}`), quebrando o upload de áudio pro STT com "Unsupported FormDataPart
+  implementation" — corrigido com `createHttpClient` (`src/adapters/http.ts`) roteando corpos
+  `FormData` por `XMLHttpRequest`; TDD Red→Green com XHR fake injetado
+  (`tests/integration/http-client.test.ts`). Também melhorada a UX de renomear falante: a aba
+  Transcrição não mostrava quem falou o quê — adicionada `labeledText` (domínio, TDD) prefixando cada
+  linha com o falante, e destaque visual no chip do falante em edição. 146 testes, `tsc --noEmit`
+  limpo (incluindo `app/`; teve que reconciliar um `extends: expo/tsconfig.base` que o próprio Expo CLI
+  injeta em `tsconfig.json` a cada `expo run`/`prebuild` com o `module`/`moduleResolution` que o
+  ts-jest do projeto já usava — solução: `module: "preserve"` + `moduleResolution: "bundler"`,
+  compatível com ambos).
+- **Spikes A-02/NFR-01: ainda pendentes de validação em aparelho.** A-02 teve um primeiro teste
+  informal (áudio de reunião real tocado com volume baixo, ambiente com outras pessoas) que produziu
+  rascunho ao vivo e permitiu completar o refinamento — mas o stakeholder pediu para repetir em
+  condição normal (falando direto no microfone) antes de dar veredito de usabilidade. NFR-01 (2h de
+  gravação em background) não foi iniciado nesta sessão — aparelho não disponível para o teste longo.
+  Retomar ambos na próxima sessão com aparelho disponível; validar também a correção de UX de
+  `labeledText` (não testada em aparelho ainda, mudança feita após o último rebuild da sessão).
