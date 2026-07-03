@@ -71,7 +71,7 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 
 | Layer | File / Component | Change Description |
 |---|---|---|
-| Domain | `src/domain/meeting-session.ts` | Máquina de estados: idle → recording ⇄ paused → ended → refining → done; eventos e invariantes (REQ-01) |
+| Domain | `src/domain/meeting-session.ts` | Máquina de estados: idle → recording ⇄ paused → ended → refining → done, com refining → ended em falha de refinamento (NFR-06); eventos e invariantes (REQ-01) |
 | Domain | `src/domain/meeting-type.ts` | Tipo de reunião como template de dados: seções, roteiro de perguntas, formato de saída (REQ-04/08) |
 | Domain | `src/domain/templates/requirements-elicitation.ts` | Template "levantamento de requisitos" espelhando `.specs/templates/requirements-spec.md` e a skill gather-requirements (REQ-04/07) |
 | Domain | `src/domain/templates/generic-meeting.ts` | Template "reunião genérica" (pauta + ata simples) (REQ-08) |
@@ -80,7 +80,8 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | Domain | `src/domain/transcript.ts` | Segmentos com `kind: draft \| final`, timestamps e `speaker?` (só em final); listar/renomear falantes com propagação (REQ-02/03/12) |
 | Domain | `src/domain/artifacts/minutes-builder.ts` | Montagem determinística da ata (Markdown) a partir de tópicos/decisões/ações extraídos (REQ-06) |
 | Domain | `src/domain/artifacts/requirements-builder.ts` | Montagem do `requirements.md` no template do kit, com Open Questions = seções não cobertas (REQ-07) |
-| Repository | `src/db/repository/*.ts` + `src/db/migrations/` | `MeetingRepository`, `TranscriptRepository`, `PointRepository`, `ArtifactRepository`; exclusão em cascata (REQ-09/10) |
+| Repository | `src/db/database.ts` | Port `SqlDatabase` com a assinatura do expo-sqlite (exec/run/getAll/getFirst); produção usa expo-sqlite, testes usam SQLite real do Node (`node:sqlite`) |
+| Repository | `src/db/repository/*.ts` + `src/db/migrations/` | `MeetingRepository`, `TranscriptRepository`, `PointRepository`, `ArtifactRepository`, `RefinementQueueRepository`; migrations versionadas (PRAGMA user_version); exclusão em cascata via FK (REQ-09/10) |
 | Adapter | `src/adapters/provider-catalog.ts` | Catálogo de provedores por capacidade (STT lote / STT streaming / LLM) com capability flags (`supportsDiarization`); seleção do usuário (REQ-13, ADR-005) |
 | Adapter | `src/adapters/stt/elevenlabs-scribe.ts` | `SttBatchProvider` ElevenLabs Scribe: upload m4a → segmentos com timestamps + falantes (REQ-03/12/13) |
 | Adapter | `src/adapters/stt/openai-whisper.ts` | `SttBatchProvider` OpenAI (sem diarização — capability flag false, gera aviso US-10.3) (REQ-03/13) |
@@ -188,6 +189,9 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | TEST-16 | `speaker rename propagates` | unit | Renomear falante atualiza todos os segmentos; artefatos regenerados refletem o novo nome (REQ-12) |
 | TEST-17 | `provider catalog capabilities` | integration | Seleção por capacidade; provedor sem `supportsDiarization` sinaliza aviso; troca de provedor não invalida dados (REQ-13) |
 | TEST-18 | `elevenlabs scribe adapter contract` | integration | Fixture de resposta Scribe → segmentos com timestamps e falantes; erro de API → erro tipado (REQ-03/12/13) |
+| TEST-19 | `meeting session service persistence` | integration | Criar reunião persiste; transições persistem status; ponto com âncora inválida é rejeitado antes de salvar; encerrar enfileira refinamento (REQ-01/05) |
+| TEST-20 | `deep delete removes data and audio` | integration | Excluir reunião apaga linhas em cascata E os arquivos de áudio via port de arquivos (REQ-10) |
+| TEST-21 | `refinement failure returns session to ended` | unit | Transição refining → ended (`refinementFailed`) permite re-tentar sem corromper a máquina de estados (NFR-06) |
 
 ### Test Files
 
@@ -208,6 +212,8 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | `src/domain/transcript.test.ts` (speakers) | TEST-15, TEST-16 |
 | `tests/integration/provider-catalog.test.ts` | TEST-17 |
 | `tests/integration/elevenlabs-scribe.test.ts` | TEST-18 |
+| `src/services/meeting-session-service.test.ts` | TEST-19, TEST-20 |
+| `src/domain/meeting-session.test.ts` (falha de refinamento) | TEST-21 |
 
 ---
 
@@ -227,6 +233,10 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 
 - **Progresso (2026-07-03):** Fatia A implementada via TDD — TEST-01..09 escritos primeiro (Red),
   domínio implementado (Green), 45 testes passando, cobertura ≥ 90%. Fatias B–E pendentes.
+- **Progresso Fatia B (2026-07-03):** TDD Red → Green — TEST-10/11/19/20/21: port `SqlDatabase`,
+  migrations v1, 5 repositories, `MeetingSessionService`, `RefinementService` (fila offline-first com
+  retry e transição refining → ended). 81 testes, cobertura ≥ 90%. Bug real pego pelos testes e
+  registrado: TRB-001 (INSERT OR REPLACE × ON DELETE CASCADE). Fatias C–E pendentes.
 - **Revisão do stakeholder (2026-07-03):** multi-provedor com ElevenLabs (REQ-13, ADR-005),
   diarização Must (REQ-12, amendment ADR-004), Android primeiro (C-05), chaves por provedor (REQ-11).
   Suporte a `speaker` no domínio adicionado via TDD (TEST-15/16). Nome "Escriba" conflitado — ver

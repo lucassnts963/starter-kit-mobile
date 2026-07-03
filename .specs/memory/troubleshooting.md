@@ -61,8 +61,26 @@ either level.
 
 ## Entries
 
-> No entries yet. The first recorded troubleshooting becomes `TRB-001`. Keep newest at the top or
-> bottom consistently — bottom-append is the default (mirrors the append-only `log.md`).
+> Bottom-append (mirrors the append-only `log.md`).
+
+## TRB-001: Upsert com INSERT OR REPLACE apaga linhas-filhas via ON DELETE CASCADE
+
+- **Date:** 2026-07-03 · **Related:** CHG-002 (Fatia B), testes TEST-11 · **Status:** resolved
+
+**Sintoma:** Após o `RefinementService` atualizar o status da reunião, transcrições, pontos,
+artefatos e até a linha da fila de refinamento sumiam do banco — `pending()` voltava vazio e a base
+final tinha 0 segmentos, mesmo com o provedor retornando dados.
+**Context:** SQLite com `PRAGMA foreign_keys = ON` e FKs `ON DELETE CASCADE` apontando para
+`meetings`; upsert do `MeetingRepository.save` escrito como `INSERT OR REPLACE`.
+**Causa:** `INSERT OR REPLACE` não é update-in-place: em conflito de PK ele **deleta a linha e
+insere outra**. O DELETE interno dispara o `ON DELETE CASCADE`, varrendo todas as tabelas-filhas da
+reunião a cada "save".
+**Solução:** Trocar por UPSERT verdadeiro — `INSERT ... ON CONFLICT(id) DO UPDATE SET ...` — que
+atualiza in-place e não dispara cascade. (Desligar as FKs ou remover o CASCADE seriam consertos
+errados: o cascade é exatamente o que o delete definitivo REQ-10 usa.)
+**Prevention:** Em qualquer tabela referenciada por FK com CASCADE, upsert deve ser
+`ON CONFLICT DO UPDATE`, nunca `INSERT OR REPLACE`. Sinal precoce: filhos "desaparecendo" após um
+save de linha-pai. Os testes de integração TEST-11 cobrem o cenário como regressão.
 
 <!--
 Template — copy this block, replace TRB-NNN with the next sequential number, and fill in:

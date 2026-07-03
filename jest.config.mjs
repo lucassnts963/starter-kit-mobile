@@ -5,7 +5,7 @@
 export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
+  roots: ['<rootDir>/src', '<rootDir>/tests'],
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.test.ts'],
   coverageThreshold: {
     // threshold: .specs/config.md## Defaults

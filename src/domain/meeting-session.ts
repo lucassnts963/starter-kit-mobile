@@ -1,6 +1,13 @@
 export type SessionStatus = 'idle' | 'recording' | 'paused' | 'ended' | 'refining' | 'done';
 
-export type SessionEvent = 'start' | 'pause' | 'resume' | 'end' | 'startRefinement' | 'completeRefinement';
+export type SessionEvent =
+  | 'start'
+  | 'pause'
+  | 'resume'
+  | 'end'
+  | 'startRefinement'
+  | 'completeRefinement'
+  | 'refinementFailed';
 
 export interface MeetingSessionState {
   meetingId: string;
@@ -21,7 +28,8 @@ const TRANSITIONS: Record<SessionStatus, Partial<Record<SessionEvent, SessionSta
   recording: { pause: 'paused', end: 'ended' },
   paused: { resume: 'recording', end: 'ended' },
   ended: { startRefinement: 'refining' },
-  refining: { completeRefinement: 'done' },
+  // refinementFailed volta para ended: a fila re-tenta sem corromper a sessão (NFR-06)
+  refining: { completeRefinement: 'done', refinementFailed: 'ended' },
   done: {},
 };
 

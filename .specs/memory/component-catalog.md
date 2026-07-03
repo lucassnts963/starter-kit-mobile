@@ -38,11 +38,17 @@ Template for new entries:
 
 ## Repositories
 
-Data access layer in `backend/src/db/repository/`. One per database entity. CRUD only.
+Data access layer in `src/db/repository/`. One per database entity. CRUD only. Todos recebem o port
+`SqlDatabase` (`src/db/database.ts` — assinatura do expo-sqlite; testes usam `node:sqlite`).
+Migrations versionadas em `src/db/migrations/` (PRAGMA user_version).
 
 | Repository | Path | Entity | Key Methods | Example |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| `MeetingRepository` | `src/db/repository/meeting-repository.ts` | `meetings` | `save (UPSERT — ver TRB-001), findById, list, searchByTitle, delete (cascade)` | `await meetings.findById(id)` |
+| `TranscriptRepository` | `src/db/repository/transcript-repository.ts` | `transcript_segments` | `saveMany, listByMeeting, replaceKind` | `await transcripts.replaceKind(id, 'final', segs)` |
+| `PointRepository` | `src/db/repository/point-repository.ts` | `extracted_points` | `save, listByMeeting, delete` | `await points.save(meetingId, point)` |
+| `ArtifactRepository` | `src/db/repository/artifact-repository.ts` | `artifacts` | `save (upsert por meeting+kind), findByMeetingAndKind` | `await artifacts.findByMeetingAndKind(id, 'minutes')` |
+| `RefinementQueueRepository` | `src/db/repository/refinement-queue-repository.ts` | `refinement_queue` | `enqueue (idempotente), pending, recordFailure, remove` | `await queue.pending()` |
 
 <!-- 
 Template for new entries:
@@ -68,11 +74,14 @@ Template for new entries:
 
 ## Services / Business Logic
 
-Business logic orchestration in `backend/src/services/` or `backend/src/business/`. Coordinates repositories and adapters.
+Business logic orchestration in `src/services/`. Coordinates repositories and adapters. Ports de
+infraestrutura (Clock, IdGenerator, AudioFileStore) em `src/services/ports.ts`; ports de provedor de
+IA (SttBatchProvider — ADR-005) em `src/adapters/provider-ports.ts`.
 
 | Service | Path | Purpose | Key Methods | Example |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| `MeetingSessionService` | `src/services/meeting-session-service.ts` | Orquestra a sessão: transições persistidas, rascunho ao vivo, pontos ancorados, encerramento → fila | `createMeeting, start/pause/resume/end, addAudioSegment, addDraftSegment, addPoint, deleteMeeting` | `await session.end(meetingId)` |
+| `RefinementService` | `src/services/refinement-service.ts` | Fila offline-first: re-transcrição (falantes), builders de ata/requisitos, retry em falha | `processQueue` | `await refinement.processQueue()` |
 
 <!-- 
 Template for new entries:

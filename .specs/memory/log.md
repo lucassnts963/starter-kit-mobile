@@ -82,3 +82,18 @@ Template — copy, set today's date, append at the bottom:
   livres em 2026-07-03); Fatia B (repositories) e Fatia C começando pelo adapter ElevenLabs
   (TEST-17/18); spikes Android (gravação 2h background + STT nativo pt-BR).
 - **Refs:** CHG-002, ADR-003 (amendment), ADR-004 (amendment), ADR-005.
+
+## 2026-07-03 — Fatia B: persistência e serviços (CHG-002)
+
+- **Did:** TDD Red → Green da Fatia B: port `SqlDatabase` (assinatura expo-sqlite; testes em
+  `node:sqlite` real), migrations v1 (FK ON DELETE CASCADE), repositories (Meeting, Transcript,
+  Point, Artifact, RefinementQueue), `MeetingSessionService` (transições persistidas, pontos
+  ancorados, delete profundo com port de arquivos) e `RefinementService` (fila offline-first,
+  falantes na base final, builders, retry). Domínio ganhou transição refining → ended
+  (`refinementFailed`, TEST-21). 81 testes verdes, cobertura 99,7%/94% branches.
+- **Learned:** TRB-001 — `INSERT OR REPLACE` em tabela-pai com FK CASCADE apaga as filhas (o
+  REPLACE é delete+insert); usar `ON CONFLICT DO UPDATE`. `node:sqlite` roda sem flag no Node 22.22
+  (só ExperimentalWarning) — dá teste de integração com SQL real sem dependência nativa extra.
+- **Next:** Fatia C — adapters: `ElevenLabsScribeAdapter` (TEST-18), catálogo de provedores com
+  capability flags (TEST-17), `LlmProvider`; depois scaffold Expo (Fatias D/E) e spikes Android.
+- **Refs:** CHG-002 (Fatia B), TRB-001.

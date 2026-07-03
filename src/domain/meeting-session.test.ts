@@ -69,6 +69,23 @@ describe('meeting-session state machine (TEST-01)', () => {
   });
 });
 
+describe('refinement failure returns session to ended (TEST-21, NFR-06)', () => {
+  it('should transition refining → ended on refinementFailed so it can be retried', () => {
+    let s = createSession('m1');
+    for (const e of ['start', 'end', 'startRefinement'] as const) s = transition(s, e);
+    s = transition(s, 'refinementFailed');
+    expect(s.status).toBe('ended');
+    // pode re-tentar
+    s = transition(s, 'startRefinement');
+    expect(s.status).toBe('refining');
+  });
+
+  it('should reject refinementFailed outside refining', () => {
+    const s = createSession('m1');
+    expect(() => transition(s, 'refinementFailed')).toThrow(InvalidTransitionError);
+  });
+});
+
 describe('session recovery from crash (TEST-02)', () => {
   it('should resume in paused with segments preserved when snapshot was recording', () => {
     const snapshot: MeetingSessionState = {
