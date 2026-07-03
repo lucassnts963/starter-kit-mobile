@@ -143,3 +143,25 @@ provedor.
 - Testes de serviço usam provedores fake; contratos dos adapters testados com fixtures por provedor
 - Capability flags (ex.: `supportsDiarization`) permitem avisar o usuário na escolha (US-10.3)
 - Custo: manter N integrações; mitigado começando com 2 STT + 2 LLM e contrato estreito
+
+**Amendment (2026-07-03) — provedores gratuitos/baratos via API Chat Completions compatível:**
+DeepSeek, OpenRouter (agregador, tem modelos `:free`) e NVIDIA NIM (build.nvidia.com, free tier)
+usam o mesmo formato de requisição/resposta que a Chat Completions API da OpenAI — em vez de 3
+classes quase idênticas a `OpenAiLlmProvider`, um único `OpenAiCompatibleLlmProvider` parametrizado
+por `{id, baseUrl, model}` cobre os três (reuso, não duplicação — `src/adapters/llm/
+openai-compatible-llm.ts`). Mesma lógica no lado STT: Groq hospeda Whisper large-v3 no formato
+`/audio/transcriptions` da OpenAI, coberto por `OpenAiCompatibleWhisperProvider`. `OpenAiLlmProvider`/
+`OpenAiWhisperProvider` originais ficam intocados (evita risco em código já testado); os novos
+provedores só entram no catálogo (`provider-catalog.ts`), sem tocar domínio/serviços — consistente
+com a decisão original. Objetivo: dar ao usuário caminhos de custo zero/muito baixo sem remover as
+opções pagas (OpenAI/Anthropic/ElevenLabs continuam disponíveis e como padrão).
+
+**LLM/STT local (on-device) — avaliado, não implementado:** tecnicamente possível (ex.
+`llama.rn`/`react-native-executorch` para LLM, `whisper.rn`/whisper.cpp para STT), mas com riscos
+altos para este app: (1) modelos pequenos o bastante pra rodar num aparelho médio (ex. Moto G15) têm
+qualidade de extração estruturada pt-BR muito inferior aos modelos hospedados — arriscando o
+requisito central de anti-alucinação/âncora literal (REQ-05); (2) exige módulo nativo + download de
+modelo (1-4GB) sob demanda, escopo grande de build/infra; (3) roda em concorrência com a gravação/STT
+nativo no mesmo aparelho, risco pra bateria/desempenho (NFR-08). Recomendação: não implementar agora;
+se o custo de API virar bloqueador real, tratar como spike separado (medir qualidade de extração de
+um modelo pequeno on-device contra os testes de anti-alucinação existentes antes de decidir).

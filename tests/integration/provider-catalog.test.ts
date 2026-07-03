@@ -81,4 +81,20 @@ describe('provider catalog capabilities (TEST-17, REQ-13)', () => {
     // trocar de provedor não invalida dados existentes
     expect((await meetings.findById('m1'))?.title).toBe('Kickoff');
   });
+
+  it('should list DeepSeek, OpenRouter and NVIDIA NIM as LLM providers, and Groq as an STT provider (REQ-13 amendment)', () => {
+    const llmIds = listProviders('llm').map((p) => p.id);
+    expect(llmIds).toEqual(expect.arrayContaining(['deepseek-llm', 'openrouter-llm', 'nvidia-llm']));
+
+    const sttIds = listProviders('stt-batch').map((p) => p.id);
+    expect(sttIds).toContain('groq-whisper');
+    expect(getProviderDescriptor('groq-whisper').supportsDiarization).toBe(false);
+  });
+
+  it('should build the new OpenAI-compatible providers from their ids', () => {
+    expect(createLlmProvider('deepseek-llm', deps).id).toBe('deepseek-llm');
+    expect(createLlmProvider('openrouter-llm', deps).id).toBe('openrouter-llm');
+    expect(createLlmProvider('nvidia-llm', deps).id).toBe('nvidia-llm');
+    expect(createSttProvider('groq-whisper', deps).id).toBe('groq-whisper');
+  });
 });

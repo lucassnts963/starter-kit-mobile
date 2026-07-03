@@ -182,3 +182,25 @@ Template — copy, set today's date, append at the bottom:
   baratos adicionais (DeepSeek, OpenRouter, NVIDIA build) e modelos de STT gratuitos — registro
   separado quando a avaliação terminar.
 - **Refs:** CHG-002 (fora de fatia — trabalho posterior ao MVP), design handoff "elucas.dev".
+
+## 2026-07-03 — Provedores gratuitos/baratos (DeepSeek, OpenRouter, NVIDIA NIM, Groq) + avaliação de LLM local
+
+- **Did:** TDD Red→Green: `OpenAiCompatibleLlmProvider` e `OpenAiCompatibleWhisperProvider`
+  (`src/adapters/{llm,stt}/openai-compatible-*.ts`) — um adapter parametrizado por
+  `{id,baseUrl,model}` em vez de duplicar `OpenAiLlmProvider`/`OpenAiWhisperProvider`, já que
+  DeepSeek, OpenRouter, NVIDIA NIM (LLM) e Groq (STT) são todos compatíveis com o formato da API da
+  OpenAI. Registrados no catálogo (`provider-catalog.ts`) mantendo OpenAI/Anthropic/ElevenLabs como
+  estavam — nenhuma opção paga removida. ADR-005 recebeu amendment documentando a decisão e a
+  avaliação de LLM/STT **on-device**: tecnicamente possível (`llama.rn`, `whisper.rn`), mas não
+  recomendado agora — modelos pequenos o bastante pro aparelho têm qualidade de extração pt-BR
+  arriscada para o requisito de anti-alucinação (REQ-05), além do custo de módulo nativo e do
+  conflito de bateria/CPU com a gravação (NFR-08); proposto como spike separado se o custo de API
+  virar bloqueador real. 160 testes, `tsc --noEmit` limpo.
+- **Learned:** vale sempre checar se um novo provedor de IA é "compatível com a API de outro" antes
+  de escrever uma classe adapter nova — DeepSeek/OpenRouter/NVIDIA NIM/Groq usam literalmente o
+  mesmo formato de request/response da OpenAI, então um adapter parametrizado por baseUrl/model
+  cobre os quatro sem duplicar lógica de parsing/erros.
+- **Next:** validar em aparelho os novos provedores (chave real, ao menos DeepSeek e Groq, que têm
+  free tier fácil de testar); revisar se os defaults de `DEFAULT_PROVIDERS` continuam corretos ou se
+  vale oferecer um provedor gratuito como sugestão inicial.
+- **Refs:** ADR-005 (amendment), REQ-13 (amendment).
