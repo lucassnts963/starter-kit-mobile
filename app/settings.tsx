@@ -17,6 +17,8 @@ export default function SettingsScreen() {
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [keys, setKeys] = useState<Record<string, string>>({});
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState('');
+  const [promptSaved, setPromptSaved] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -25,8 +27,23 @@ export default function SettingsScreen() {
         sel[capability] = await settings.getSelectedProvider(capability);
       }
       setSelected(sel);
+      setPrompt(await settings.getExtractionPrompt());
     })();
   }, [settings]);
+
+  const savePrompt = async () => {
+    await settings.setExtractionPrompt(prompt);
+    setPrompt(await settings.getExtractionPrompt());
+    setPromptSaved(true);
+    setTimeout(() => setPromptSaved(false), 2000);
+  };
+
+  const resetPrompt = async () => {
+    await settings.resetExtractionPrompt();
+    setPrompt(await settings.getExtractionPrompt());
+    setPromptSaved(true);
+    setTimeout(() => setPromptSaved(false), 2000);
+  };
 
   const select = async (capability: ProviderCapability, providerId: string) => {
     await settings.setSelectedProvider(capability, providerId);
@@ -82,6 +99,33 @@ export default function SettingsScreen() {
           ))}
         </View>
       ))}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Prompt de extração (avançado)</Text>
+        <Text style={styles.promptHint}>
+          Instrução enviada ao assistente para extrair os pontos da reunião. Edite para focar no que
+          importa (ex.: só decisões e responsáveis). Peça sempre resposta em JSON com sectionId, text e
+          anchor.quote (citação literal) — senão a ata pode sair vazia.
+        </Text>
+        <TextInput
+          style={styles.promptInput}
+          value={prompt}
+          onChangeText={setPrompt}
+          placeholder="Prompt de extração…"
+          placeholderTextColor={colors.mutedForeground}
+          multiline
+          textAlignVertical="top"
+        />
+        <View style={styles.promptRow}>
+          <Pressable style={styles.promptReset} onPress={resetPrompt}>
+            <Text style={styles.promptResetText}>Restaurar padrão</Text>
+          </Pressable>
+          <Pressable style={styles.promptSave} onPress={savePrompt}>
+            <Text style={styles.keyButtonText}>{promptSaved ? 'Salvo ✓' : 'Salvar prompt'}</Text>
+          </Pressable>
+        </View>
+      </View>
+
       <Text style={styles.note}>
         Cada usuário usa as próprias chaves. As chaves ficam no Keychain/Keystore do aparelho e nunca
         saem dele, exceto nas chamadas diretas ao provedor escolhido.
@@ -113,5 +157,34 @@ const styles = StyleSheet.create({
   },
   keyButton: { backgroundColor: colors.primary, borderRadius: radii.sm, paddingHorizontal: spacing.md - 2, justifyContent: 'center' },
   keyButtonText: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
+  promptHint: { color: colors.mutedForeground, fontFamily: fonts.sans, fontSize: typeScale.bodySm, marginBottom: spacing.sm },
+  promptInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    padding: spacing.sm + 2,
+    minHeight: 140,
+    color: colors.foreground,
+    fontFamily: fonts.mono,
+    fontSize: typeScale.bodySm,
+    backgroundColor: colors.card,
+  },
+  promptRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  promptReset: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    padding: spacing.sm + 2,
+    alignItems: 'center',
+  },
+  promptResetText: { color: colors.foreground, fontFamily: fonts.sansSemiBold },
+  promptSave: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    borderRadius: radii.sm,
+    padding: spacing.sm + 2,
+    alignItems: 'center',
+  },
   note: { color: colors.mutedForeground, fontSize: typeScale.bodySm, fontFamily: fonts.sans, marginBottom: spacing.xl - 8 },
 });

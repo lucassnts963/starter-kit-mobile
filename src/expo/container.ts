@@ -95,11 +95,18 @@ export async function createContainer(): Promise<AppContainer> {
     speakers: new SpeakerService({ meetings, transcripts, points, artifacts, clock }),
     async createLiveAssist() {
       const llmId = await settings.getSelectedProvider('llm');
-      return new LiveAssistService({ transcripts, points, llm: createLlmProvider(llmId, providerDeps), ids });
+      const extractionPrompt = await settings.getExtractionPrompt();
+      return new LiveAssistService({
+        transcripts,
+        points,
+        llm: createLlmProvider(llmId, { ...providerDeps, extractionPrompt }),
+        ids,
+      });
     },
     async createRefinement() {
       const sttId = await settings.getSelectedProvider('stt-batch');
       const llmId = await settings.getSelectedProvider('llm');
+      const extractionPrompt = await settings.getExtractionPrompt();
       return new RefinementService({
         meetings,
         transcripts,
@@ -108,7 +115,7 @@ export async function createContainer(): Promise<AppContainer> {
         queue,
         provider: createSttProvider(sttId, providerDeps),
         // extração em lote: preenche ata/requisitos de reuniões sem pontos do ao vivo (importadas)
-        llm: createLlmProvider(llmId, providerDeps),
+        llm: createLlmProvider(llmId, { ...providerDeps, extractionPrompt }),
         clock,
         ids,
       });

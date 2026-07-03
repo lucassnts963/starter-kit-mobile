@@ -31,7 +31,7 @@ export class AnthropicLlmProvider implements LlmProvider {
       body: JSON.stringify({
         model: this.model,
         max_tokens: 1024,
-        system: EXTRACTION_SYSTEM_PROMPT,
+        system: this.deps.extractionPrompt ?? EXTRACTION_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: JSON.stringify(input) }],
       }),
     });

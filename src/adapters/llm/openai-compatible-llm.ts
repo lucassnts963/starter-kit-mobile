@@ -7,6 +7,8 @@ import { EXTRACTION_SYSTEM_PROMPT, parseCandidates } from './parse-candidates';
 export interface LlmAdapterDeps {
   http: HttpClient;
   keys: ApiKeyStore;
+  /** Prompt de sistema da extração — configurável pelo usuário; default: EXTRACTION_SYSTEM_PROMPT. */
+  extractionPrompt?: string;
 }
 
 export interface OpenAiCompatibleLlmConfig {
@@ -45,7 +47,7 @@ export class OpenAiCompatibleLlmProvider implements LlmProvider {
         model: this.config.model,
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: EXTRACTION_SYSTEM_PROMPT },
+          { role: 'system', content: this.deps.extractionPrompt ?? EXTRACTION_SYSTEM_PROMPT },
           { role: 'user', content: JSON.stringify(input) },
         ],
       }),

@@ -328,6 +328,13 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
   exclusão da reunião (REQ-10); `RecordingService` persiste em pause/stop/import (TDD). Player na tela
   de resultados (`src/expo/AudioPlayer.tsx`, expo-audio, passthrough fora do coverage) toca os
   segmentos em sequência com play/pause e barra de progresso. 179 testes.
+- **Prompt de extração configurável + fix do player mudo (2026-07-03):** o prompt de extração deixou
+  de ser constante fixa — `SettingsRepository.getExtractionPrompt/setExtractionPrompt/reset`
+  (persistido, default = `EXTRACTION_SYSTEM_PROMPT`, prompt em branco cai no default), injetado nos
+  adapters LLM via `LlmAdapterDeps.extractionPrompt`; tela de Configurações ganhou editor
+  (multiline + Salvar + Restaurar padrão). Player de áudio aparecia mas saía mudo: o gravador deixa a
+  sessão em modo gravação (`allowsRecording: true`) e nunca revertia — `AudioPlayer` agora chama
+  `setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true })` ao montar. 183 testes.
 - **Spikes A-02/NFR-01: ainda pendentes de validação em aparelho.** A-02 teve um primeiro teste
   informal (áudio de reunião real tocado com volume baixo, ambiente com outras pessoas) que produziu
   rascunho ao vivo e permitiu completar o refinamento — mas o stakeholder pediu para repetir em

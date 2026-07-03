@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { colors, fonts, radii, spacing, typeScale } from '../components/ui/theme';
 
 /**
@@ -12,6 +12,12 @@ export function AudioPlayer({ segments }: { segments: string[] }) {
   const [index, setIndex] = useState(0);
   const player = useAudioPlayer(segments[index] ?? null);
   const status = useAudioPlayerStatus(player);
+
+  // o gravador deixa a sessão em modo gravação (allowsRecording), o que silencia o playback —
+  // reverter para modo reprodução ao montar o player (senão o áudio "toca" mas sai mudo)
+  useEffect(() => {
+    setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
+  }, []);
 
   // avança para o próximo segmento quando o atual termina
   useEffect(() => {

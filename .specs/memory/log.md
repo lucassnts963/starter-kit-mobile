@@ -255,3 +255,19 @@ Template — copy, set today's date, append at the bottom:
 - **Next:** validar em aparelho: reproduzir áudio de reunião gravada e de importada; conferir que a
   contagem de pontos aparece ao gerar. Spikes A-02/NFR-01 seguem pendentes.
 - **Refs:** CHG-002 (Notes), REQ-10.
+
+## 2026-07-03 — Prompt de extração configurável + player mudo corrigido
+
+- **Did:** (1) Prompt de extração agora é configurável: SettingsRepository.getExtractionPrompt/
+  setExtractionPrompt/resetExtractionPrompt (persistido, default = EXTRACTION_SYSTEM_PROMPT, branco
+  cai no default), injetado nos 3 adapters LLM via LlmAdapterDeps.extractionPrompt; editor na tela de
+  Configurações (multiline + Salvar + Restaurar padrão). (2) Player aparecia mas saía mudo — o
+  gravador deixa a sessao de audio em allowsRecording:true e nunca revertia; AudioPlayer chama
+  setAudioModeAsync({allowsRecording:false, playsInSilentMode:true}) ao montar. 183 testes, tsc limpo.
+- **Learned:** no expo-audio, gravar e depois tocar exige resetar o AudioMode — allowsRecording deixa
+  a sessao em modo captura e o playback sai sem som (nao e erro, e roteamento). Prompt de LLM como
+  dado configuravel exige injecao (nunca importar a constante direto no adapter) pra respeitar a
+  escolha do usuario em runtime.
+- **Next:** validar em aparelho: tocar audio (com som agora), editar o prompt e conferir que a
+  extracao muda. Spikes A-02/NFR-01 seguem pendentes.
+- **Refs:** CHG-002 (Notes), REQ-13.
