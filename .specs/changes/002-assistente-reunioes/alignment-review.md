@@ -19,7 +19,9 @@
 | REQ-08 | Covered | `### Technical` · `meeting-type.ts` "template de dados"; templates de requisitos e genérica; TEST-09 "tipos são dados, sem alterar código do motor" | — |
 | REQ-09 | Covered | `## Design` flow passo 7 "exportar via share sheet (Markdown)"; repositories + TEST-13 (busca no histórico) | — |
 | REQ-10 | Covered | `## Design` · "indicador permanente visível"; flow passo 8 + TEST-10 "cascade delete" | — |
-| REQ-11 | Covered | `### Technical` · `secure-keys.ts` "expo-secure-store"; edge case "Chave de API ausente/inválida"; TEST-12 | — |
+| REQ-11 | Covered | `### Technical` · `secure-keys.ts` "uma por provedor"; edge case "Chave de API ausente/inválida"; TEST-12 | — |
+| REQ-12 | Covered | `### Technical` · `transcript.ts` "speaker? (só em final); listar/renomear falantes com propagação"; edge cases de diarização/renomeação; TEST-15/16/18 | — |
+| REQ-13 | Covered | `### Technical` · `provider-catalog.ts` "capability flags"; adapters ElevenLabs/OpenAI/LLMs; edge case "trocar de provedor e reprocessar"; TEST-17/18 | — |
 | NFR-01 | Partial (accepted) | `## Notes` · "exigem validação em aparelho físico — spikes da Fatia D" | Spike manual planejado; não automatizável em CI — aceito pelo autor |
 | NFR-02 | Covered | `## Design` flow passo 3 (extração periódica ~30s); AC de US-02 herdado no painel; medição instrumentada prevista nos requisitos | — |
 | NFR-03 | Covered | `### Technical` camada Adapter concentra rede; conventions.md "nenhuma chamada de rede fora de src/adapters/" | — |
@@ -36,6 +38,7 @@
 
 ## Summary
 
-Todos os REQ-01..11 têm cobertura explícita no spec com evidência citada. NFR-01 e NFR-08 são
-parciais por natureza (validação física em aparelho, não automatizável) e estão explicitamente
-aceitos e planejados como spikes da Fatia D. Spec liberado para `run-tdd`.
+Todos os REQ-01..13 têm cobertura explícita no spec com evidência citada (REQ-12/13 adicionados na
+revisão do stakeholder de 2026-07-03, re-revisados no mesmo dia). NFR-01 e NFR-08 são parciais por
+natureza (validação física em aparelho — Android primeiro, C-05 — não automatizável) e estão
+explicitamente aceitos e planejados como spikes da Fatia D. Spec liberado para `run-tdd`.

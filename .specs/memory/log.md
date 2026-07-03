@@ -65,3 +65,20 @@ Template — copy, set today's date, append at the bottom:
   build, diarização); iniciar `run-tdd` da Fatia A (domínio puro: meeting-session, coverage,
   builders); spikes da Fatia D (gravação 2h em background; qualidade do STT nativo pt-BR).
 - **Refs:** CHG-001 (implemented), CHG-002 (draft, aligned), ADR-003, ADR-004.
+
+## 2026-07-03 — Revisão do stakeholder: multi-provedor, diarização, Android, nome conflitado
+
+- **Did:** Decisões do stakeholder incorporadas: REQ-12 (diarização Must + renomear falantes),
+  REQ-13 (multi-provedor com ElevenLabs Scribe, chaves por provedor), C-05 (Android primeiro).
+  ADR-003 ganhou "Alternatives considered" (Flutter/Dart, nativo, KMP — pedido do stakeholder);
+  ADR-004 recebeu amendment de diarização; ADR-005 criado (catálogo de provedores por capacidade).
+  Spec CHG-002 e alignment-review atualizados (TEST-15..18); domínio via TDD: `speaker` só em
+  segmentos final, `distinctSpeakers`, `renameSpeaker` (53 testes verdes). Naming research feita:
+  "Escriba" conflitado (escriba.app é produto de transcrição; Escriba Informática é marca forte BR).
+- **Learned:** ElevenLabs Scribe diariza até 48 falantes com pt-BR de WER excelente e tem variante
+  Realtime (~150ms) — cobre lote E um futuro upgrade do rascunho ao vivo. STT nativo não diariza →
+  falante é propriedade exclusiva de segmento `final` (invariante no domínio, DraftSpeakerError).
+- **Next:** stakeholder escolher o nome (shortlist: Escrivo / Ata Viva / Pautero — domínios .app
+  livres em 2026-07-03); Fatia B (repositories) e Fatia C começando pelo adapter ElevenLabs
+  (TEST-17/18); spikes Android (gravação 2h background + STT nativo pt-BR).
+- **Refs:** CHG-002, ADR-003 (amendment), ADR-004 (amendment), ADR-005.

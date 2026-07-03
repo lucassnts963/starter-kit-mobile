@@ -54,6 +54,21 @@ de IA (transcrição e LLM) e iteração rápida por um time de uma pessoa auxil
 - Package Manager: npm
 - Testing: JEST (jest-expo; domain core puro em Node) — coverage: valor em `.specs/config.md## Defaults`
 
+**Alternatives considered (registrado a pedido do stakeholder, 2026-07-03):**
+
+| Alternativa | Prós | Por que não |
+|---|---|---|
+| **Flutter (Dart)** | Excelente performance de UI; bom ecossistema de áudio (`record`, `speech_to_text`); binário único | Introduz uma segunda linguagem no ecossistema do time (todo o tooling do starter-kit — scripts, skills, convenções — é TypeScript/Node). O núcleo de domínio em Dart não seria compartilhável com um futuro backend/web em TS. TDD em Dart é bom, mas o time e os agentes têm proficiência e convenções maduras em TS/Jest. Ganho de performance é irrelevante para este app (UI simples; o custo real está em áudio/rede, que é nativo nos dois casos) |
+| **Nativo (Kotlin + Swift)** | Controle máximo de áudio em background, foreground service, SpeechRecognizer/SFSpeechRecognizer sem ponte | Duas bases de código para um time de uma pessoa = dobro de spec/TDD/manutenção. O acesso nativo necessário (gravação, STT do sistema) já existe empacotado em módulos Expo mantidos (`expo-audio`, `expo-speech-recognition`); se faltar algo, o Expo dev client permite escrever módulo nativo pontual sem sair da stack |
+| **Kotlin Multiplatform** | Domínio compartilhado entre plataformas | Ecossistema ainda mais distante do kit; UI ainda teria de ser feita por plataforma (ou Compose MP, menos maduro em iOS); curva alta para ganho pequeno num MVP |
+
+Critério decisivo: **um time de uma pessoa guiado por agentes entrega mais rápido na stack em que o
+kit, as convenções e os agentes já operam (TypeScript)**, com o domínio 100% puro e testável em Node
+— e o risco nativo (áudio em background, STT) fica isolado em módulos Expo com fallback para módulo
+nativo pontual via dev client. A decisão é revisável: se os spikes da Fatia D provarem limitação real
+de RN/Expo em gravação longa + STT simultâneo no Android, um novo ADR reavalia (a camada de domínio
+é portável por design).
+
 **Consequences:**
 - Tooling and conventions will follow this stack
 - All ADRs and specs must align with these choices
@@ -61,6 +76,7 @@ de IA (transcrição e LLM) e iteração rápida por um time de uma pessoa auxil
   dev client (expo-dev-client) em vez do Expo Go — assumido desde já
 - Sem backend próprio, as chaves de API ficam no dispositivo (SecureStore); aceitável para uso pessoal,
   reavaliar antes de distribuir publicamente
+- Primeiros builds e spikes rodam em **Android** (decisão do stakeholder — C-05 dos requisitos 002)
 
 ---
 
@@ -89,3 +105,41 @@ exigem rede estável a reunião inteira; Whisper em lote é o mais preciso, mas 
 - Dois formatos de transcrição (draft/final) precisam ser modelados desde o início (`Transcript.kind`)
 - Custo de API concentrado numa única chamada em lote por reunião, previsível
 - Validação pendente marcada em REQ (A-02): qualidade do STT nativo pt-BR em fala de reunião real
+
+**Amendment (2026-07-03) — diarização é Must (REQ-12):** o STT nativo ao vivo não identifica
+falantes; a diarização acontece na passada de refinamento, pelo provedor de lote (ElevenLabs Scribe
+diariza até 48 falantes, pt com WER excelente). Consequências: falantes existem apenas em segmentos
+`final` (o domínio modela `speaker` opcional); o rascunho ao vivo permanece sem falantes; provedores
+de lote sem diarização geram aviso ao usuário (US-10). O ElevenLabs também oferece Scribe Realtime
+(streaming, ~150ms) — fica registrado como upgrade opcional do rascunho ao vivo quando houver rede,
+sem alterar a arquitetura híbrida.
+
+---
+
+## ADR-005: Multi-provedor de IA via Adapters, com chaves do usuário
+
+- **Date:** 2026-07-03
+- **Status:** Accepted
+
+**Context:** Decisão do stakeholder (2026-07-03): o app deve ser multi-provedor — o usuário escolhe
+qual serviço de STT/LLM usar, com destaque para ElevenLabs disponível desde o MVP — e cada usuário
+usa as próprias chaves de API. Provedores de IA mudam de preço/qualidade rápido; lock-in é risco.
+
+**Decision:** As capacidades de IA são definidas por **interfaces de domínio de provedor**, com
+implementações plugáveis registradas num catálogo:
+
+- `SttBatchProvider` — `transcribe(audio, opts) → segmentos com timestamps + speaker?`; capability
+  flag `supportsDiarization`. MVP: **ElevenLabs Scribe** (diarização) e OpenAI (Whisper, sem
+  diarização — com aviso).
+- `SttStreamProvider` (opcional, pós-MVP) — rascunho ao vivo via streaming; MVP usa STT nativo.
+- `LlmProvider` — `suggestQuestions / extractPoints / summarize`; MVP: OpenAI e Anthropic.
+
+Seleção de provedor por capacidade fica em configurações (persistida em SQLite); chaves ficam **uma
+por provedor** no SecureStore (REQ-11). Nenhum código fora de `src/adapters/` conhece HTTP/SDKs de
+provedor.
+
+**Consequences:**
+- Adicionar provedor = nova classe adapter + registro no catálogo; zero mudança em domínio/serviços
+- Testes de serviço usam provedores fake; contratos dos adapters testados com fixtures por provedor
+- Capability flags (ex.: `supportsDiarization`) permitem avisar o usuário na escolha (US-10.3)
+- Custo: manter N integrações; mitigado começando com 2 STT + 2 LLM e contrato estreito

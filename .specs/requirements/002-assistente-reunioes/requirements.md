@@ -72,6 +72,8 @@ estava presente.
 | US-06 | Como usuário, quero escolher o tipo de reunião (levantamento de requisitos, genérica; depois: planning, retro, 1:1), para que perguntas, extração e ata se adaptem ao contexto | 1. Tipo escolhido ao criar a reunião 2. Cada tipo define template de saída e roteiro de perguntas 3. Tipos são dados (templates), não código — adicionar tipo não exige rebuild |
 | US-07 | Como usuário, quero ver o histórico de reuniões e exportar/compartilhar ata, transcrição e requirements.md (Markdown), para levar o resultado ao repositório do projeto | 1. Lista com busca por título/data 2. Exportação via share sheet do sistema em Markdown 3. Nada é enviado a terceiros sem ação explícita do usuário |
 | US-08 | Como entrevistado, quero que a gravação seja explícita e local, para confiar no processo | 1. Indicador visível de gravação ativa 2. Áudio e transcrições armazenados apenas no dispositivo 3. Exclusão definitiva de uma reunião apaga áudio + transcrições + derivados |
+| US-09 | Como usuário, quero escolher o provedor de STT e de LLM (multi-provedor, incluindo ElevenLabs) e usar minhas próprias chaves de API, para não ficar preso a um fornecedor | 1. Tela de configurações lista provedores suportados por capacidade (STT lote, STT streaming, LLM) 2. ElevenLabs (Scribe) disponível desde o MVP 3. Cada provedor usa a chave do próprio usuário 4. Trocar de provedor não exige reinstalar nem migrar dados |
+| US-10 | Como condutor, quero que a transcrição refinada e a ata identifiquem quem falou (diarização), para atribuir decisões e pendências às pessoas certas | 1. Falantes distintos rotulados na transcrição refinada (Falante 1, 2, …) 2. Posso renomear falantes (ex.: "Falante 1" → "Cliente – João") e a renomeação se propaga a transcrição, ata e requisitos 3. Se o provedor escolhido não suportar diarização, o app avisa antes da reunião |
 
 ### 4.4 BDD Scenarios
 
@@ -129,7 +131,9 @@ Feature: Sessão de reunião de levantamento de requisitos
 | REQ-08 | O sistema deve suportar tipos de reunião configuráveis por template (roteiro de perguntas + formato de saída), com ao menos "levantamento de requisitos" e "genérica" no MVP | US-06 | Should |
 | REQ-09 | O sistema deve manter histórico local de reuniões com busca e exportação/compartilhamento em Markdown | US-07 | Should |
 | REQ-10 | O sistema deve indicar gravação ativa de forma visível e permitir exclusão definitiva de todos os dados de uma reunião | US-08 | Must |
-| REQ-11 | O sistema deve permitir configurar as chaves dos provedores de IA (STT/LLM) em armazenamento seguro do dispositivo | US-05, US-03 | Must |
+| REQ-11 | O sistema deve permitir configurar as chaves dos provedores de IA (STT/LLM) em armazenamento seguro do dispositivo, uma chave por provedor | US-05, US-03, US-09 | Must |
+| REQ-12 | O sistema deve identificar os falantes (diarização) na transcrição refinada, permitir renomeá-los e propagar os nomes para ata e requirements.md | US-10 | Must |
+| REQ-13 | O sistema deve ser multi-provedor: STT e LLM atrás de interfaces de adapter com provedores selecionáveis pelo usuário, incluindo ElevenLabs (Scribe) desde o MVP | US-09 | Must |
 
 ---
 
@@ -156,6 +160,8 @@ Feature: Sessão de reunião de levantamento de requisitos
 | C-02 | STT nativo ao vivo e gravação simultâneos exigem módulos nativos (expo-dev-client); Expo Go não basta | Technical | Build de desenvolvimento via EAS/dev client |
 | C-03 | Time de uma pessoa + agentes; metodologia starter-kit obrigatória (spec + TDD) | Timeline | Escopo do MVP precisa ser enxuto e incremental |
 | C-04 | Legislação de gravação de conversas (LGPD; consentimento dos participantes) | Regulatory | Indicador de gravação + fluxo de consentimento na criação da reunião |
+| C-05 | Primeiros testes e builds em **Android** (decisão do stakeholder, 2026-07-03); iOS depois | Technical | Spikes (background audio, STT nativo) rodam primeiro em Android; foreground service Android é prioridade |
+| C-06 | Diarização depende do provedor de STT em lote — o STT nativo ao vivo não diariza | Technical | Provedor padrão do MVP precisa suportar diarização (ElevenLabs Scribe: até 48 falantes); falantes só existem na transcrição refinada |
 
 ---
 
@@ -175,7 +181,7 @@ Feature: Sessão de reunião de levantamento de requisitos
 
 - Backend próprio, contas de usuário, sincronização entre dispositivos (evolução futura)
 - Gravação de chamadas de dentro de outros apps (Meet/Zoom/Teams) — só áudio ambiente no MVP
-- Diarização perfeita por participante (best-effort se o provedor oferecer; não é critério de aceite)
+- Diarização no rascunho ao vivo (falantes aparecem só na transcrição refinada — C-06); reconhecimento de voz por pessoa (voice fingerprint) entre reuniões
 - Edição colaborativa/multiusuário da ata
 - Tradução e reuniões em idiomas diferentes de pt-BR
 - Envio automático do `requirements.md` para um repositório Git (export manual via share sheet no MVP)
@@ -186,7 +192,7 @@ Feature: Sessão de reunião de levantamento de requisitos
 
 | Priority | Requirements | Rationale |
 |---|---|---|
-| **Must have** | REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06, REQ-07, REQ-10, REQ-11 | O produto é a sessão guiada: gravar + rascunho ao vivo + perguntas + extração + artefatos finais; privacidade e chaves são pré-condição |
+| **Must have** | REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06, REQ-07, REQ-10, REQ-11, REQ-12, REQ-13 | O produto é a sessão guiada: gravar + rascunho ao vivo + perguntas + extração + artefatos finais; diarização e multi-provedor são decisão do stakeholder (2026-07-03); privacidade e chaves são pré-condição |
 | **Should have** | REQ-08, REQ-09 | Flexibilidade de tipos e histórico agregam muito, mas uma reunião única já entrega valor |
 | **Could have** | — | Diarização best-effort, temas/i18n |
 | **Won't have (now)** | — | Itens da seção 9 (backend, calls, multiusuário) |
@@ -199,8 +205,8 @@ Feature: Sessão de reunião de levantamento de requisitos
 |---|---|---|---|
 | expo-av / expo-audio (gravação) | Third-party | Available | Sem gravação — inviabiliza o produto |
 | expo-speech-recognition (STT nativo ao vivo) | Third-party | Available (validar em dev client) | Sem rascunho ao vivo; cai para streaming pago (A-02) |
-| Provedor STT em lote (Whisper/OpenAI ou compatível) | Third-party | Available (requer chave) | Ata final degrada para o rascunho nativo |
-| Provedor LLM (perguntas, extração, ata, requirements.md) | Third-party | Available (requer chave) | REQ-04..07 inoperantes — só gravação+transcrição |
+| Provedores STT em lote com diarização (ElevenLabs Scribe; alternativas: AssemblyAI, Deepgram) | Third-party | Available (requer chave do usuário) | Ata final degrada para o rascunho nativo, sem falantes (REQ-12 inoperante) |
+| Provedores LLM (perguntas, extração, ata, requirements.md) — multi-provedor | Third-party | Available (requer chave do usuário) | REQ-04..07 inoperantes — só gravação+transcrição |
 | Template `requirements-spec.md` do starter-kit | Internal | Available | Saída perderia o formato da metodologia |
 
 ---
@@ -216,6 +222,8 @@ Feature: Sessão de reunião de levantamento de requisitos
 | Painel de condução | Tela que mostra seções cobertas/não cobertas e perguntas sugeridas | Durante a sessão |
 | Tipo de reunião | Template que define roteiro de perguntas + formato de saída | Flexibilidade (REQ-08) |
 | Ponto extraído | Trecho relevante identificado e classificado numa seção do documento-alvo | Construção ao vivo do requirements.md |
+| Diarização | Identificação de quem falou cada trecho (Falante 1, 2, …), renomeável pelo condutor | Transcrição refinada, ata e requisitos (REQ-12) |
+| Provedor | Serviço externo de IA plugável via adapter (STT lote, STT streaming, LLM) com chave do usuário | Multi-provedor (REQ-13); ElevenLabs desde o MVP |
 
 ---
 
@@ -246,7 +254,9 @@ Feature: Sessão de reunião de levantamento de requisitos
 | REQ-08 | US-06 | Tipos de reunião por template | Should | changes/002-assistente-reunioes/ | — |
 | REQ-09 | US-07 | Histórico + export Markdown | Should | changes/002-assistente-reunioes/ | — |
 | REQ-10 | US-08 | Indicador de gravação + exclusão definitiva | Must | changes/002-assistente-reunioes/ | — |
-| REQ-11 | US-03, US-05 | Chaves de IA em armazenamento seguro | Must | changes/002-assistente-reunioes/ | — |
+| REQ-11 | US-03, US-05, US-09 | Chaves de IA em armazenamento seguro (por provedor) | Must | changes/002-assistente-reunioes/ | — |
+| REQ-12 | US-10 | Diarização na transcrição refinada + renomear falantes | Must | changes/002-assistente-reunioes/ | — |
+| REQ-13 | US-09 | Multi-provedor STT/LLM, incluindo ElevenLabs | Must | changes/002-assistente-reunioes/ | — |
 
 ---
 
@@ -281,12 +291,27 @@ seção = pergunta respondida; seção vazia = pergunta sugerida.
   metodologia para evitar questões em aberto, construção incremental do requirements.md, flexível
   para outros tipos de reunião, aberto a nomes, dogfooding da metodologia.
 
+### Naming research (2026-07-03)
+
+Verificação de disponibilidade do nome **Escriba** — resultado: **conflitado**.
+
+| Evidência | Fonte | Impacto |
+|---|---|---|
+| `escriba.app` registrado por produto de **transcrição de áudio e vídeo** (mesma categoria) | DNS resolve + busca web | Alto — confusão direta de marca e domínio principal ocupado |
+| Escriba Informática (`escriba.com.br`): 30+ anos, maior fornecedora de software para cartórios do Brasil (grupo Vela Software) | escriba.com.br | Alto — marca forte em software no Brasil, provável registro INPI em classes de software |
+| Alternativas com domínio `.app` livre (checagem DNS 2026-07-03; confirmar no registrador antes de comprar) | DNS | `escrivo.app`, `ataviva.app`, `pautero.app`, `ataqui.app` livres; `relator.app` ocupado |
+| "Escrivo": conflitos fracos e de outro setor (consultoria UK `escrivo.com`; app de escrita "eScribo" da MWM) | busca web | Médio-baixo — coined name, setor diferente; validar INPI |
+
+Recomendação: **não lançar como "Escriba"**. Shortlist: **Escrivo** (mais próximo do original),
+**Ata Viva / AtaViva**, **Pautero**. "Escriba" permanece como codinome interno do repositório até a
+decisão; renomear é mudança leve (AGENTS.md, README, package.json, app.json).
+
 ### Open Questions
 
-- [ ] Nome do app: proposta **Escriba**; alternativas: Pauta, Minuta, Relator, Ata Viva — decisão do stakeholder
-- [ ] Provedores padrão de STT em lote e LLM (OpenAI? Anthropic para LLM? multi-provedor desde o MVP?)
-- [ ] Plataforma-alvo do primeiro build de teste: Android, iOS ou ambos?
-- [ ] A ata precisa identificar falantes (diarização) já no MVP ou "best-effort" basta?
+- [ ] Nome definitivo: "Escriba" conflitado (ver Naming research) — escolher entre Escrivo / Ata Viva / Pautero / outro, registrar domínio e validar INPI
+- [x] ~~Provedores padrão de STT/LLM~~ → **multi-provedor desde o MVP (REQ-13), ElevenLabs incluído, chaves do próprio usuário (REQ-11)** — decisão do stakeholder, 2026-07-03
+- [x] ~~Plataforma-alvo do primeiro build~~ → **Android primeiro (C-05)** — decisão do stakeholder, 2026-07-03
+- [x] ~~Diarização no MVP?~~ → **Sim, Must (REQ-12)** — decisão do stakeholder, 2026-07-03
 - [ ] Reuniões remotas (som saindo do notebook): captar pelo microfone do celular é aceitável no MVP? (A-05)
 
 ---

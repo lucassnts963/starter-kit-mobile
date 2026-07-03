@@ -86,7 +86,7 @@ Template for new entries:
 | Module | Path | Purpose | Key Exports | Example |
 |---|---|---|---|---|
 | `meeting-session` | `src/domain/meeting-session.ts` | Máquina de estados da sessão (idle→recording⇄paused→ended→refining→done) + recuperação pós-crash | `createSession, transition, restoreSession, InvalidTransitionError` | `s = transition(s, 'start')` |
-| `transcript` | `src/domain/transcript.ts` | Segmentos draft/final; artefatos finais usam só `final` (ADR-004) | `addSegment, artifactBase, hasFinal, fullText` | `artifactBase(segments)` |
+| `transcript` | `src/domain/transcript.ts` | Segmentos draft/final; artefatos finais usam só `final` (ADR-004); falantes (diarização) só em `final`, renomeáveis (REQ-12) | `addSegment, artifactBase, hasFinal, fullText, distinctSpeakers, renameSpeaker` | `renameSpeaker(segments, 'Falante 1', 'Cliente')` |
 | `meeting-type` | `src/domain/meeting-type.ts` | Tipos de reunião como dados validados (seções + roteiro de perguntas) | `parseMeetingType, InvalidMeetingTypeError` | `parseMeetingType(json)` |
 | `templates/*` | `src/domain/templates/` | Templates: levantamento de requisitos (espelha o kit) e reunião genérica | `requirementsElicitationTemplate, genericMeetingTemplate` | `parseMeetingType(requirementsElicitationTemplate)` |
 | `extracted-point` | `src/domain/extracted-point.ts` | Pontos com âncora literal na transcrição (anti-alucinação); mover/editar | `anchorPoint, movePoint, editPointText, AnchorError` | `anchorPoint(p, segments)` |

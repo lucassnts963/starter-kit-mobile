@@ -52,7 +52,9 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 - [ ] REQ-08: Tipos de reunião como templates de dados ("levantamento de requisitos" e "genérica" no MVP)
 - [ ] REQ-09: Histórico local com busca + export/compartilhamento Markdown
 - [ ] REQ-10: Indicador visível de gravação + exclusão definitiva (áudio, transcrições e derivados)
-- [ ] REQ-11: Chaves de provedores de IA em SecureStore
+- [ ] REQ-11: Chaves de provedores de IA em SecureStore (uma por provedor)
+- [ ] REQ-12: Diarização na transcrição refinada + renomear falantes com propagação para ata e requisitos
+- [ ] REQ-13: Multi-provedor STT/LLM via catálogo de adapters (ADR-005), com ElevenLabs Scribe desde o MVP
 
 ### Non-Functional
 
@@ -75,18 +77,21 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | Domain | `src/domain/templates/generic-meeting.ts` | Template "reunião genérica" (pauta + ata simples) (REQ-08) |
 | Domain | `src/domain/coverage.ts` | Motor de cobertura: pontos extraídos × seções do template → seções cobertas/pendentes + próxima pergunta (REQ-04) |
 | Domain | `src/domain/extracted-point.ts` | Ponto extraído com âncora no trecho da transcrição; mover/editar/apagar (REQ-05) |
-| Domain | `src/domain/transcript.ts` | Segmentos com `kind: draft \| final`, timestamps (REQ-02/03) |
+| Domain | `src/domain/transcript.ts` | Segmentos com `kind: draft \| final`, timestamps e `speaker?` (só em final); listar/renomear falantes com propagação (REQ-02/03/12) |
 | Domain | `src/domain/artifacts/minutes-builder.ts` | Montagem determinística da ata (Markdown) a partir de tópicos/decisões/ações extraídos (REQ-06) |
 | Domain | `src/domain/artifacts/requirements-builder.ts` | Montagem do `requirements.md` no template do kit, com Open Questions = seções não cobertas (REQ-07) |
 | Repository | `src/db/repository/*.ts` + `src/db/migrations/` | `MeetingRepository`, `TranscriptRepository`, `PointRepository`, `ArtifactRepository`; exclusão em cascata (REQ-09/10) |
-| Adapter | `src/adapters/stt-adapter.ts` | Transcrição em lote (upload m4a → texto com timestamps); provedor configurável (REQ-03) |
-| Adapter | `src/adapters/llm-adapter.ts` | `suggestQuestions()`, `extractPoints()`, `generateMinutes()` com instrução anti-alucinação (REQ-04/05/06) |
-| Adapter | `src/adapters/secure-keys.ts` | Leitura/gravação de chaves via expo-secure-store (REQ-11) |
+| Adapter | `src/adapters/provider-catalog.ts` | Catálogo de provedores por capacidade (STT lote / STT streaming / LLM) com capability flags (`supportsDiarization`); seleção do usuário (REQ-13, ADR-005) |
+| Adapter | `src/adapters/stt/elevenlabs-scribe.ts` | `SttBatchProvider` ElevenLabs Scribe: upload m4a → segmentos com timestamps + falantes (REQ-03/12/13) |
+| Adapter | `src/adapters/stt/openai-whisper.ts` | `SttBatchProvider` OpenAI (sem diarização — capability flag false, gera aviso US-10.3) (REQ-03/13) |
+| Adapter | `src/adapters/llm/*.ts` | `LlmProvider` (OpenAI, Anthropic): `suggestQuestions()`, `extractPoints()`, `generateMinutes()` com instrução anti-alucinação (REQ-04/05/06/13) |
+| Adapter | `src/adapters/secure-keys.ts` | Chaves via expo-secure-store, **uma por provedor** (REQ-11) |
 | Service | `src/services/meeting-session-service.ts` | Orquestra sessão: gravação, STT ao vivo, extração periódica, encerramento → fila de refinamento (REQ-01..07) |
 | Service | `src/services/recording-service.ts` | expo-audio: gravação em segmentos, background mode, recuperação pós-crash (REQ-01, NFR-01) |
 | Service | `src/services/live-transcription-service.ts` | expo-speech-recognition com auto-restart de sessão; alimenta domain (REQ-02) |
 | Service | `src/services/refinement-service.ts` | Fila offline-first: re-transcrição + geração de artefatos quando houver rede (REQ-03/06/07, NFR-06) |
-| UI | `app/` (expo-router) | Home/histórico, nova reunião (tipo + consentimento), sessão (painel de condução), resultados/export (REQ-04/05/09/10) |
+| UI | `app/` (expo-router) | Home/histórico, nova reunião (tipo + consentimento), sessão (painel de condução), resultados/export com renomeação de falantes (REQ-04/05/09/10/12) |
+| UI | `app/settings.tsx` | Configurações: seleção de provedor por capacidade + chave por provedor; aviso quando o STT escolhido não diariza (REQ-11/13, US-10.3) |
 
 ## Design
 
@@ -118,6 +123,9 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 - Reunião > 2h ou disco cheio: aviso de espaço antes de iniciar; gravação em segmentos permite fechar o que já existe
 - Chave de API ausente/inválida: fluxos de IA desativados com explicação e atalho para configurar (REQ-11)
 - LLM retorna ponto sem âncora na transcrição: ponto descartado (anti-alucinação, risco da seção 13 dos requisitos)
+- Provedor STT escolhido não suporta diarização: aviso na criação da reunião; artefatos saem sem falantes (US-10.3)
+- Renomear falante após artefatos gerados: renomeação propaga (regeneração determinística dos builders) (REQ-12)
+- Provedor fora do ar no refinamento: fila retenta; usuário pode trocar de provedor e reprocessar a mesma reunião (REQ-13)
 
 ## Risks
 
@@ -149,7 +157,9 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | REQ-08 | Tipos de reunião por template | Should | Requisitos + genérica; tipos são dados |
 | REQ-09 | Histórico + export Markdown | Should | Busca; share sheet; nada sai sem ação do usuário |
 | REQ-10 | Indicador de gravação + exclusão definitiva | Must | Indicador permanente; cascade delete |
-| REQ-11 | Chaves de IA em SecureStore | Must | Keychain/Keystore; nunca em logs |
+| REQ-11 | Chaves de IA em SecureStore (por provedor) | Must | Keychain/Keystore; nunca em logs |
+| REQ-12 | Diarização + renomear falantes | Must | Falantes em segmentos `final`; renomeação propaga a ata/requisitos; aviso se provedor não diariza |
+| REQ-13 | Multi-provedor STT/LLM (ElevenLabs no MVP) | Must | Catálogo por capacidade; trocar provedor sem migração; ElevenLabs Scribe operacional |
 
 ## Tests
 
@@ -174,6 +184,10 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | TEST-12 | `adapters degrade gracefully` | integration | LlmAdapter com erro → serviço continua em modo somente-gravação; chave ausente → erro tipado (REQ-11, NFR-06) |
 | TEST-13 | `history search filter` | unit | Filtro memoizado por título/data (REQ-09) |
 | TEST-14 | `session screen states` | unit (RTL) | Loading/empty/error/success do painel de condução; indicador de gravação sempre visível (REQ-10, NFR-05) |
+| TEST-15 | `speakers on final segments` | unit | `speaker` só em segmentos final; lista de falantes distintos derivada da transcrição refinada (REQ-12) |
+| TEST-16 | `speaker rename propagates` | unit | Renomear falante atualiza todos os segmentos; artefatos regenerados refletem o novo nome (REQ-12) |
+| TEST-17 | `provider catalog capabilities` | integration | Seleção por capacidade; provedor sem `supportsDiarization` sinaliza aviso; troca de provedor não invalida dados (REQ-13) |
+| TEST-18 | `elevenlabs scribe adapter contract` | integration | Fixture de resposta Scribe → segmentos com timestamps e falantes; erro de API → erro tipado (REQ-03/12/13) |
 
 ### Test Files
 
@@ -191,6 +205,9 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | `tests/integration/adapters.test.ts` | TEST-12 |
 | `src/services/history-filter.test.ts` | TEST-13 |
 | `app/session.test.tsx` | TEST-14 |
+| `src/domain/transcript.test.ts` (speakers) | TEST-15, TEST-16 |
+| `tests/integration/provider-catalog.test.ts` | TEST-17 |
+| `tests/integration/elevenlabs-scribe.test.ts` | TEST-18 |
 
 ---
 
@@ -210,6 +227,10 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 
 - **Progresso (2026-07-03):** Fatia A implementada via TDD — TEST-01..09 escritos primeiro (Red),
   domínio implementado (Green), 45 testes passando, cobertura ≥ 90%. Fatias B–E pendentes.
+- **Revisão do stakeholder (2026-07-03):** multi-provedor com ElevenLabs (REQ-13, ADR-005),
+  diarização Must (REQ-12, amendment ADR-004), Android primeiro (C-05), chaves por provedor (REQ-11).
+  Suporte a `speaker` no domínio adicionado via TDD (TEST-15/16). Nome "Escriba" conflitado — ver
+  Naming research nos requisitos; aguardando escolha do stakeholder.
 - ADR-003 (stack) e ADR-004 (transcrição híbrida) em `.specs/memory/architecture.md` fundamentam as
   fatias C/D.
 - NFR-01/NFR-08 (2h de gravação, bateria) exigem validação em aparelho físico — marcar como spikes da
