@@ -134,6 +134,36 @@ describe('refinement queue offline-first (TEST-11)', () => {
     expect(minutes?.markdown).toContain('Atas manuais perdem informação');
   });
 
+  it('should refine without speakers when the provider does not diarize (US-10.3)', async () => {
+    const noDiarization: SttBatchProvider = {
+      id: 'openai-whisper',
+      supportsDiarization: false,
+      async transcribe() {
+        return [{ text: 'sem falantes', startMs: 0, endMs: 1000 }];
+      },
+    };
+    await makeService(db, noDiarization).processQueue();
+    const finals = (await new TranscriptRepository(db).listByMeeting('m1')).filter((s) => s.kind === 'final');
+    expect(finals).toHaveLength(1);
+    expect(finals[0]?.speaker).toBeUndefined();
+  });
+
+  it('should not touch the status when the meeting is not in a refinable state (fila com lixo)', async () => {
+    const meetings = new MeetingRepository(db);
+    const m = await meetings.findById('m1');
+    await meetings.save({ ...m!, status: 'done' }); // fila tem entrada, mas sessão já concluiu
+    const stringThrowingProvider: SttBatchProvider = {
+      id: 'fake',
+      supportsDiarization: true,
+      async transcribe() {
+        throw 'boom'; // provedores mal-comportados lançam não-Error
+      },
+    };
+    const result = await makeService(db, stringThrowingProvider).processQueue();
+    expect(result[0]).toMatchObject({ meetingId: 'm1', ok: false });
+    expect((await meetings.findById('m1'))?.status).toBe('done');
+  });
+
   it('should fail the queue item when the meeting type is unknown (dados corrompidos não travam a fila)', async () => {
     const meetings = new MeetingRepository(db);
     const m = await meetings.findById('m1');

@@ -39,6 +39,26 @@ describe('repositories CRUD + cascade delete (TEST-10)', () => {
     await expect(migrate(db)).resolves.not.toThrow();
   });
 
+  it('should apply all migrations even when user_version is unreadable (defensivo)', async () => {
+    const executed: string[] = [];
+    const stub: SqlDatabase = {
+      execAsync: async (sql) => {
+        executed.push(sql);
+      },
+      runAsync: async () => undefined,
+      getAllAsync: async () => [],
+      getFirstAsync: async () => null,
+    };
+    await migrate(stub);
+    expect(executed.some((sql) => sql.includes('CREATE TABLE meetings'))).toBe(true);
+    expect(executed.some((sql) => sql.includes('CREATE TABLE settings'))).toBe(true);
+  });
+
+  it('should round-trip consentConfirmed=false (LGPD: consentimento explícito)', async () => {
+    await meetings.save({ ...meeting('m1'), consentConfirmed: false });
+    expect((await meetings.findById('m1'))?.consentConfirmed).toBe(false);
+  });
+
   it('should save and load a meeting with audio segments round-tripped', async () => {
     const m = { ...meeting('m1'), audioSegments: ['a.m4a', 'b.m4a'], status: 'paused' as const };
     await meetings.save(m);

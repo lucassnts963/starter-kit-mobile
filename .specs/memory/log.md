@@ -97,3 +97,20 @@ Template — copy, set today's date, append at the bottom:
 - **Next:** Fatia C — adapters: `ElevenLabsScribeAdapter` (TEST-18), catálogo de provedores com
   capability flags (TEST-17), `LlmProvider`; depois scaffold Expo (Fatias D/E) e spikes Android.
 - **Refs:** CHG-002 (Fatia B), TRB-001.
+
+## 2026-07-03 — Fatia C: adapters de IA multi-provedor (CHG-002)
+
+- **Did:** TDD Red → Green da Fatia C: ports `HttpClient`/`ApiKeyStore`, erros tipados,
+  `ElevenLabsScribeProvider` (diarização speaker_N → "Falante N+1", offset entre arquivos de áudio
+  segmentados), `OpenAiWhisperProvider` (capability flag false), `OpenAiLlmProvider` +
+  `AnthropicLlmProvider` com `EXTRACTION_SYSTEM_PROMPT` anti-alucinação e `parseCandidates`
+  tolerante, catálogo `provider-catalog.ts` (ADR-005) com seleção persistida em `settings`
+  (migration v2, defaults: elevenlabs-scribe / anthropic-llm), `LiveAssistService` (cursor de delta
+  por reunião; falha de LLM → ok:false sem consumir o delta). 116 testes, 99,4%/97,7% branches.
+- **Learned:** o delta só pode ser consumido DEPOIS da resposta do LLM — consumir antes perderia
+  trechos em caso de falha (re-tentativa processa o mesmo delta). Candidato de LLM sem âncora
+  literal é descartado no serviço e contado em `dropped` (telemetria futura de alucinação).
+- **Next:** Fatia D (scaffold Expo dev client + `RecordingService`/`LiveTranscriptionService` +
+  spikes Android: 2h background e STT nativo pt-BR) e Fatia E (UI expo-router + tela de
+  configurações de provedores/chaves usando o catálogo).
+- **Refs:** CHG-002 (Fatia C), ADR-005.

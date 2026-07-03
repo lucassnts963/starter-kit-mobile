@@ -59,11 +59,19 @@ Template for new entries:
 
 ## Adapters
 
-External service integrations in `backend/src/adapters/`. One per external service.
+External service integrations in `src/adapters/`. One per external service. Rede SÓ existe aqui
+(NFR-03). Ports: `HttpClient` (`http.ts`), `ApiKeyStore` (`secure-keys.ts` — uma chave por provedor,
+REQ-11), interfaces de provedor em `provider-ports.ts`. Erros tipados em `errors.ts`
+(`MissingApiKeyError`, `ProviderApiError`). Catálogo com capability flags em `provider-catalog.ts`
+(ADR-005): adicionar provedor = nova classe + uma linha no catálogo.
 
 | Adapter | Path | External Service | Key Methods | Example |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| `ElevenLabsScribeProvider` | `src/adapters/stt/elevenlabs-scribe.ts` | ElevenLabs Scribe (STT lote, diariza — REQ-12) | `transcribe(files, {language})` | `createSttProvider('elevenlabs-scribe', deps)` |
+| `OpenAiWhisperProvider` | `src/adapters/stt/openai-whisper.ts` | OpenAI Whisper (STT lote, sem diarização → aviso) | `transcribe(files, {language})` | `createSttProvider('openai-whisper', deps)` |
+| `OpenAiLlmProvider` | `src/adapters/llm/openai-llm.ts` | OpenAI Chat Completions | `extractPoints(input)` | `createLlmProvider('openai-llm', deps)` |
+| `AnthropicLlmProvider` | `src/adapters/llm/anthropic-llm.ts` | Anthropic Messages API | `extractPoints(input)` | `createLlmProvider('anthropic-llm', deps)` |
+| `parseCandidates` + `EXTRACTION_SYSTEM_PROMPT` | `src/adapters/llm/parse-candidates.ts` | — (validação compartilhada da saída do LLM; instrução anti-alucinação) | `parseCandidates(raw)` | usado por todos os LlmProviders |
 
 <!-- 
 Template for new entries:
@@ -82,6 +90,7 @@ IA (SttBatchProvider — ADR-005) em `src/adapters/provider-ports.ts`.
 |---|---|---|---|---|
 | `MeetingSessionService` | `src/services/meeting-session-service.ts` | Orquestra a sessão: transições persistidas, rascunho ao vivo, pontos ancorados, encerramento → fila | `createMeeting, start/pause/resume/end, addAudioSegment, addDraftSegment, addPoint, deleteMeeting` | `await session.end(meetingId)` |
 | `RefinementService` | `src/services/refinement-service.ts` | Fila offline-first: re-transcrição (falantes), builders de ata/requisitos, retry em falha | `processQueue` | `await refinement.processQueue()` |
+| `LiveAssistService` | `src/services/live-assist-service.ts` | Loop ao vivo: delta → LLM → âncoras validadas → cobertura + perguntas; degrada sem exceção | `processDelta(meetingId, type)` | `const r = await assist.processDelta(id, type)` |
 
 <!-- 
 Template for new entries:

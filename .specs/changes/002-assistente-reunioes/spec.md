@@ -81,7 +81,7 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | Domain | `src/domain/artifacts/minutes-builder.ts` | Montagem determinística da ata (Markdown) a partir de tópicos/decisões/ações extraídos (REQ-06) |
 | Domain | `src/domain/artifacts/requirements-builder.ts` | Montagem do `requirements.md` no template do kit, com Open Questions = seções não cobertas (REQ-07) |
 | Repository | `src/db/database.ts` | Port `SqlDatabase` com a assinatura do expo-sqlite (exec/run/getAll/getFirst); produção usa expo-sqlite, testes usam SQLite real do Node (`node:sqlite`) |
-| Repository | `src/db/repository/*.ts` + `src/db/migrations/` | `MeetingRepository`, `TranscriptRepository`, `PointRepository`, `ArtifactRepository`, `RefinementQueueRepository`; migrations versionadas (PRAGMA user_version); exclusão em cascata via FK (REQ-09/10) |
+| Repository | `src/db/repository/*.ts` + `src/db/migrations/` | `MeetingRepository`, `TranscriptRepository`, `PointRepository`, `ArtifactRepository`, `RefinementQueueRepository`, `SettingsRepository` (key-value: provedor selecionado por capacidade); migrations versionadas (PRAGMA user_version); exclusão em cascata via FK (REQ-09/10/13) |
 | Adapter | `src/adapters/provider-catalog.ts` | Catálogo de provedores por capacidade (STT lote / STT streaming / LLM) com capability flags (`supportsDiarization`); seleção do usuário (REQ-13, ADR-005) |
 | Adapter | `src/adapters/stt/elevenlabs-scribe.ts` | `SttBatchProvider` ElevenLabs Scribe: upload m4a → segmentos com timestamps + falantes (REQ-03/12/13) |
 | Adapter | `src/adapters/stt/openai-whisper.ts` | `SttBatchProvider` OpenAI (sem diarização — capability flag false, gera aviso US-10.3) (REQ-03/13) |
@@ -91,6 +91,7 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | Service | `src/services/recording-service.ts` | expo-audio: gravação em segmentos, background mode, recuperação pós-crash (REQ-01, NFR-01) |
 | Service | `src/services/live-transcription-service.ts` | expo-speech-recognition com auto-restart de sessão; alimenta domain (REQ-02) |
 | Service | `src/services/refinement-service.ts` | Fila offline-first: re-transcrição + geração de artefatos quando houver rede (REQ-03/06/07, NFR-06) |
+| Service | `src/services/live-assist-service.ts` | Loop de assistência ao vivo: delta da transcrição → LLM extrai candidatos → âncoras validadas (inválidos descartados) → cobertura + perguntas; erro de LLM degrada para somente-gravação sem exceção (REQ-04/05, NFR-06) |
 | UI | `app/` (expo-router) | Home/histórico, nova reunião (tipo + consentimento), sessão (painel de condução), resultados/export com renomeação de falantes (REQ-04/05/09/10/12) |
 | UI | `app/settings.tsx` | Configurações: seleção de provedor por capacidade + chave por provedor; aviso quando o STT escolhido não diariza (REQ-11/13, US-10.3) |
 
@@ -192,6 +193,7 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | TEST-19 | `meeting session service persistence` | integration | Criar reunião persiste; transições persistem status; ponto com âncora inválida é rejeitado antes de salvar; encerrar enfileira refinamento (REQ-01/05) |
 | TEST-20 | `deep delete removes data and audio` | integration | Excluir reunião apaga linhas em cascata E os arquivos de áudio via port de arquivos (REQ-10) |
 | TEST-21 | `refinement failure returns session to ended` | unit | Transição refining → ended (`refinementFailed`) permite re-tentar sem corromper a máquina de estados (NFR-06) |
+| TEST-22 | `live assist extraction loop` | integration | Delta da transcrição → candidatos do LLM; sem âncora válida = descartado; erro de LLM → `ok:false` sem exceção e nada salvo (REQ-04/05, NFR-06) |
 
 ### Test Files
 
@@ -214,6 +216,8 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
 | `tests/integration/elevenlabs-scribe.test.ts` | TEST-18 |
 | `src/services/meeting-session-service.test.ts` | TEST-19, TEST-20 |
 | `src/domain/meeting-session.test.ts` (falha de refinamento) | TEST-21 |
+| `src/services/live-assist-service.test.ts` | TEST-22, TEST-12 (parte LLM) |
+| `tests/integration/openai-whisper.test.ts` | TEST-18 (contrato do 2º provedor STT, sem diarização) |
 
 ---
 
@@ -237,6 +241,12 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
   migrations v1, 5 repositories, `MeetingSessionService`, `RefinementService` (fila offline-first com
   retry e transição refining → ended). 81 testes, cobertura ≥ 90%. Bug real pego pelos testes e
   registrado: TRB-001 (INSERT OR REPLACE × ON DELETE CASCADE). Fatias C–E pendentes.
+- **Progresso Fatia C (2026-07-03):** TDD Red → Green — TEST-12/17/18/22: erros tipados, ports
+  HTTP/chaves, adapters ElevenLabs Scribe (diarização, offset multi-arquivo) e OpenAI Whisper (flag
+  false → aviso), LLM providers (OpenAI + Anthropic) com instrução anti-alucinação compartilhada,
+  catálogo com capability flags e seleção persistida (settings, migration v2), `LiveAssistService`
+  (delta → candidatos → âncoras validadas → cobertura/perguntas; degradação graciosa). 116 testes,
+  cobertura 99,4%/97,7% branches. Falta: Fatias D–E (Expo: gravação, STT nativo, UI).
 - **Revisão do stakeholder (2026-07-03):** multi-provedor com ElevenLabs (REQ-13, ADR-005),
   diarização Must (REQ-12, amendment ADR-004), Android primeiro (C-05), chaves por provedor (REQ-11).
   Suporte a `speaker` no domínio adicionado via TDD (TEST-15/16). Nome "Escriba" conflitado — ver

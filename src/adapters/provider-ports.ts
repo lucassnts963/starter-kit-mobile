@@ -22,3 +22,22 @@ export interface SttBatchProvider {
   readonly supportsDiarization: boolean;
   transcribe(audioFiles: string[], options: SttTranscribeOptions): Promise<SttResultSegment[]>;
 }
+
+/** Entrada da extração ao vivo: só o delta da transcrição + as seções do tipo de reunião. */
+export interface LlmExtractionInput {
+  meetingTypeName: string;
+  sections: { id: string; title: string }[];
+  transcript: { segmentId: string; text: string }[];
+}
+
+/** Candidato a ponto — só vira `ExtractedPoint` se a âncora validar (anti-alucinação, REQ-05). */
+export interface LlmPointCandidate {
+  sectionId: string;
+  text: string;
+  anchor: { segmentId: string; quote: string };
+}
+
+export interface LlmProvider {
+  readonly id: string;
+  extractPoints(input: LlmExtractionInput): Promise<LlmPointCandidate[]>;
+}
