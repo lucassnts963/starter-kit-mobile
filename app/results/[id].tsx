@@ -51,6 +51,19 @@ export default function ResultsScreen() {
     }
   };
 
+  // re-roda só o LLM + builders sobre a transcrição final existente — sem custo de STT
+  const regenerate = async () => {
+    setRefreshing(true);
+    try {
+      const refinement = await services.createRefinement();
+      const result = await refinement.regenerateArtifacts(id!);
+      if (!result.ok) Alert.alert('Regeneração falhou', result.error ?? 'erro desconhecido');
+      await load();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const rename = async () => {
     if (!renaming || renaming.to.trim() === '') return;
     await services.speakers.rename(id!, renaming.from, renaming.to.trim());
@@ -88,6 +101,14 @@ export default function ResultsScreen() {
         <Pressable style={styles.refine} onPress={refine} disabled={refreshing}>
           <Text style={styles.refineText}>
             {refreshing ? 'Refinando…' : 'Refinar agora (re-transcrição + ata + requisitos)'}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {meeting?.status === 'done' ? (
+        <Pressable style={styles.regenerate} onPress={regenerate} disabled={refreshing}>
+          <Text style={styles.regenerateText}>
+            {refreshing ? 'Regenerando…' : 'Regerar ata/requisitos (só LLM — não re-transcreve)'}
           </Text>
         </Pressable>
       ) : null}
@@ -154,6 +175,16 @@ const styles = StyleSheet.create({
   tabTextActive: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
   refine: { backgroundColor: colors.primary, borderRadius: radii.sm, padding: spacing.sm + 4, alignItems: 'center', marginTop: spacing.sm + 4 },
   refineText: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
+  regenerate: {
+    backgroundColor: colors.accentTint,
+    borderWidth: 1,
+    borderColor: colors.accentTintBorder,
+    borderRadius: radii.sm,
+    padding: spacing.sm + 4,
+    alignItems: 'center',
+    marginTop: spacing.sm + 4,
+  },
+  regenerateText: { color: colors.accentSoft, fontFamily: fonts.sansSemiBold },
   content: { flex: 1, marginTop: spacing.sm + 4 },
   markdown: { fontFamily: fonts.mono, fontSize: typeScale.bodySm, color: colors.foreground },
   speakers: { marginTop: spacing.sm + 4 },

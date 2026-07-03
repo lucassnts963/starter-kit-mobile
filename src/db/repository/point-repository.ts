@@ -40,4 +40,9 @@ export class PointRepository {
   async delete(id: string): Promise<void> {
     await this.db.runAsync('DELETE FROM extracted_points WHERE id = ?', [id]);
   }
+
+  /** Limpa os pontos da reunião — usado quando a extração em lote substitui os do ao vivo. */
+  async deleteByMeeting(meetingId: string): Promise<void> {
+    await this.db.runAsync('DELETE FROM extracted_points WHERE meeting_id = ?', [meetingId]);
+  }
 }

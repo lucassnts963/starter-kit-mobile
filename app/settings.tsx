@@ -63,19 +63,21 @@ export default function SettingsScreen() {
                   </Text>
                 ) : null}
               </Pressable>
-              <View style={styles.keyRow}>
-                <TextInput
-                  style={styles.keyInput}
-                  placeholder="Chave de API (fica no aparelho, em armazenamento seguro)"
-                  placeholderTextColor={colors.mutedForeground}
-                  secureTextEntry
-                  value={keys[provider.id] ?? ''}
-                  onChangeText={(v) => setKeys((k) => ({ ...k, [provider.id]: v }))}
-                />
-                <Pressable style={styles.keyButton} onPress={() => saveKey(provider.id)}>
-                  <Text style={styles.keyButtonText}>{savedFlash === provider.id ? 'Salva ✓' : 'Salvar'}</Text>
-                </Pressable>
-              </View>
+              {provider.requiresApiKey === false ? null : (
+                <View style={styles.keyRow}>
+                  <TextInput
+                    style={styles.keyInput}
+                    placeholder="Chave de API (fica no aparelho, em armazenamento seguro)"
+                    placeholderTextColor={colors.mutedForeground}
+                    secureTextEntry
+                    value={keys[provider.id] ?? ''}
+                    onChangeText={(v) => setKeys((k) => ({ ...k, [provider.id]: v }))}
+                  />
+                  <Pressable style={styles.keyButton} onPress={() => saveKey(provider.id)}>
+                    <Text style={styles.keyButtonText}>{savedFlash === provider.id ? 'Salva ✓' : 'Salvar'}</Text>
+                  </Pressable>
+                </View>
+              )}
             </Card>
           ))}
         </View>

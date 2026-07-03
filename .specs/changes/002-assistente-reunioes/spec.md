@@ -295,6 +295,19 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
   injeta em `tsconfig.json` a cada `expo run`/`prebuild` com o `module`/`moduleResolution` que o
   ts-jest do projeto já usava — solução: `module: "preserve"` + `moduleResolution: "bundler"`,
   compatível com ambos).
+- **Bugfix ata/requisitos vazios + controle de custo (2026-07-03, teste em aparelho):** o stakeholder
+  validou a importação de áudio e a transcrição, mas a ata saiu só com a estrutura ("não coberto" em
+  tudo). Causa: os builders consomem os pontos extraídos, que só nasciam no assistente ao vivo —
+  reunião importada (ou sessão com LLM degradado) nunca tinha pontos. Fix (TDD,
+  `tests/integration/refinement-extraction.test.ts`): o `RefinementService` agora roda extração em
+  lote sobre a transcrição FINAL quando a reunião não tem nenhum ponto, com a mesma validação de
+  âncora anti-alucinação do ao vivo; quando os pontos do ao vivo existem, nada de tokens extras.
+  Controle de custo adicionado na mesma passada: (1) retry de refinamento reusa a base final já paga
+  (não re-transcreve); (2) `regenerateArtifacts()` re-roda SÓ o passo do LLM + builders (botão
+  "Regerar" na tela de resultados para reuniões `done`); (3) novo provedor STT
+  `local-draft` ("Local — rascunho do aparelho") promove o rascunho do STT nativo a base final sem
+  nenhuma chamada de rede — custo zero, sem diarização (aviso automático via capability flag), erro
+  claro em reunião importada sem rascunho. 169 testes.
 - **Spikes A-02/NFR-01: ainda pendentes de validação em aparelho.** A-02 teve um primeiro teste
   informal (áudio de reunião real tocado com volume baixo, ambiente com outras pessoas) que produziu
   rascunho ao vivo e permitiu completar o refinamento — mas o stakeholder pediu para repetir em

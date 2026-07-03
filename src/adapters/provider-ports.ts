@@ -23,6 +23,13 @@ export interface SttBatchProvider {
   transcribe(audioFiles: string[], options: SttTranscribeOptions): Promise<SttResultSegment[]>;
 }
 
+/**
+ * Provedor STT "local": promove o rascunho do STT nativo do aparelho a base final, sem nenhuma
+ * chamada de rede (custo zero). O `RefinementService` trata esse id como caso especial — o
+ * `transcribe()` do stub nunca é chamado, a base vem da transcrição draft já persistida.
+ */
+export const LOCAL_DRAFT_STT_ID = 'local-draft';
+
 /** Entrada da extração ao vivo: só o delta da transcrição + as seções do tipo de reunião. */
 export interface LlmExtractionInput {
   meetingTypeName: string;

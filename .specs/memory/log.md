@@ -204,3 +204,23 @@ Template — copy, set today's date, append at the bottom:
   free tier fácil de testar); revisar se os defaults de `DEFAULT_PROVIDERS` continuam corretos ou se
   vale oferecer um provedor gratuito como sugestão inicial.
 - **Refs:** ADR-005 (amendment), REQ-13 (amendment).
+
+## 2026-07-03 — Bugfix ata vazia (extração em lote) + economia de tokens/créditos
+
+- **Did:** Teste em aparelho do stakeholder confirmou: importação e transcrição OK, mas ata/
+  requisitos saíam só com a estrutura. Causa: builders consomem pontos extraídos, que só nasciam no
+  `LiveAssistService` — importadas nunca têm. Fix TDD (`refinement-extraction.test.ts`, 9 casos):
+  extração em lote no `RefinementService` sobre a base FINAL quando não há pontos (mesma validação
+  de âncora anti-alucinação, alucinados descartados). Custo sob controle: pontos do ao vivo
+  existentes → zero tokens extras; retry reusa base final já transcrita (não re-paga STT);
+  `regenerateArtifacts()` re-roda só LLM+builders (botão "Regerar" na tela de resultados);
+  provedor `local-draft` promove o rascunho do STT nativo a base final com custo zero (sem chave de
+  API — campo escondido via `requiresApiKey: false`). 169 testes, tsc limpo.
+- **Learned:** pipeline de artefatos dependia de um caminho único de extração (ao vivo) — qualquer
+  fluxo novo que pule a sessão ao vivo (importação, degradação) precisa de um caminho em lote
+  equivalente. Falha de LLM no refinamento agora é barata de re-tentar porque a transcrição
+  persistida é reusada — ordem das persistências importa pro custo, não só pra corretude.
+- **Next:** stakeholder re-testar no aparelho: importar → refinar → ata populada; testar "Regerar"
+  numa reunião já transcrita (só gasta LLM); testar o provedor "Local — rascunho do aparelho" numa
+  reunião gravada ao vivo. Spikes A-02/NFR-01 continuam pendentes.
+- **Refs:** CHG-002 (Notes), REQ-05, NFR-06.

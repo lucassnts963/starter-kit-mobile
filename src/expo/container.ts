@@ -99,6 +99,7 @@ export async function createContainer(): Promise<AppContainer> {
     },
     async createRefinement() {
       const sttId = await settings.getSelectedProvider('stt-batch');
+      const llmId = await settings.getSelectedProvider('llm');
       return new RefinementService({
         meetings,
         transcripts,
@@ -106,6 +107,8 @@ export async function createContainer(): Promise<AppContainer> {
         artifacts,
         queue,
         provider: createSttProvider(sttId, providerDeps),
+        // extração em lote: preenche ata/requisitos de reuniões sem pontos do ao vivo (importadas)
+        llm: createLlmProvider(llmId, providerDeps),
         clock,
         ids,
       });

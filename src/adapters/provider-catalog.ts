@@ -1,4 +1,4 @@
-import type { LlmProvider, SttBatchProvider } from './provider-ports';
+import { LOCAL_DRAFT_STT_ID, type LlmProvider, type SttBatchProvider } from './provider-ports';
 import { ElevenLabsScribeProvider, type SttAdapterDeps } from './stt/elevenlabs-scribe';
 import { OpenAiWhisperProvider } from './stt/openai-whisper';
 import { OpenAiCompatibleWhisperProvider, type OpenAiCompatibleWhisperConfig } from './stt/openai-compatible-whisper';
@@ -14,6 +14,8 @@ export interface ProviderDescriptor {
   capability: ProviderCapability;
   /** Presente em provedores STT — false dispara o aviso pré-reunião (US-10.3). */
   supportsDiarization?: boolean;
+  /** false só no provedor local (sem nuvem) — esconde o campo de chave nas configurações. */
+  requiresApiKey?: boolean;
 }
 
 export class UnknownProviderError extends Error {
@@ -59,6 +61,13 @@ export const PROVIDERS: ProviderDescriptor[] = [
   { id: 'elevenlabs-scribe', label: 'ElevenLabs Scribe', capability: 'stt-batch', supportsDiarization: true },
   { id: 'openai-whisper', label: 'OpenAI Whisper', capability: 'stt-batch', supportsDiarization: false },
   { id: 'groq-whisper', label: 'Groq (Whisper large-v3, gratuito/barato)', capability: 'stt-batch', supportsDiarization: false },
+  {
+    id: LOCAL_DRAFT_STT_ID,
+    label: 'Local — rascunho do aparelho (sem custo, sem nuvem)',
+    capability: 'stt-batch',
+    supportsDiarization: false,
+    requiresApiKey: false,
+  },
   { id: 'openai-llm', label: 'OpenAI (GPT)', capability: 'llm' },
   { id: 'anthropic-llm', label: 'Anthropic (Claude)', capability: 'llm' },
   { id: 'deepseek-llm', label: 'DeepSeek (custo muito baixo)', capability: 'llm' },
@@ -88,6 +97,16 @@ export function createSttProvider(id: string, deps: SttAdapterDeps): SttBatchPro
       return new ElevenLabsScribeProvider(deps);
     case 'openai-whisper':
       return new OpenAiWhisperProvider(deps);
+    case LOCAL_DRAFT_STT_ID:
+      // stub: o RefinementService intercepta esse id e promove o rascunho local —
+      // transcribe() só é alcançado se algo tentar transcrever arquivo com ele
+      return {
+        id: LOCAL_DRAFT_STT_ID,
+        supportsDiarization: false,
+        async transcribe() {
+          throw new Error('O provedor local usa o rascunho do aparelho e não transcreve arquivos de áudio');
+        },
+      };
     default: {
       const config = OPENAI_COMPATIBLE_STT_CONFIGS[id];
       if (!config) throw new UnknownProviderError(id, 'stt-batch');

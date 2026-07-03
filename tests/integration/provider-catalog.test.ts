@@ -97,4 +97,14 @@ describe('provider catalog capabilities (TEST-17, REQ-13)', () => {
     expect(createLlmProvider('nvidia-llm', deps).id).toBe('nvidia-llm');
     expect(createSttProvider('groq-whisper', deps).id).toBe('groq-whisper');
   });
+
+  it('should offer the zero-cost local-draft STT (rascunho do aparelho) with a clear no-file error', async () => {
+    expect(listProviders('stt-batch').map((p) => p.id)).toContain('local-draft');
+    expect(getProviderDescriptor('local-draft').supportsDiarization).toBe(false);
+
+    const provider = createSttProvider('local-draft', deps);
+    expect(provider.id).toBe('local-draft');
+    // o stub nunca transcreve arquivos — o RefinementService promove o rascunho antes de chegar aqui
+    await expect(provider.transcribe(['a.m4a'], { language: 'pt' })).rejects.toThrow(/rascunho/i);
+  });
 });
