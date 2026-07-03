@@ -21,18 +21,36 @@ export class AnchorError extends Error {
 }
 
 /**
- * Anti-alucinação (REQ-05, risco "LLM inventar conteúdo"): um ponto só existe se a
- * citação estiver literalmente contida no segmento referenciado da transcrição.
+ * Normaliza para comparação de citação: minúsculas, espaços colapsados, pontuação de borda
+ * removida. Mantém as letras (acentos incluídos) — a citação ainda precisa ser real, só tolera
+ * as variações típicas do LLM (capitalização, espaçamento, aspas/ponto final) que antes
+ * derrubavam pontos válidos silenciosamente.
+ */
+function normalizeForMatch(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s"'“”‘’.,;:!?()[\]-]+|[\s"'“”‘’.,;:!?()[\]-]+$/g, '')
+    .trim();
+}
+
+/**
+ * Anti-alucinação (REQ-05, risco "LLM inventar conteúdo"): um ponto só existe se a citação
+ * estiver realmente na transcrição. A busca é tolerante (case/espaço/pontuação) e cobre TODOS
+ * os segmentos — o LLM erra com frequência o `segmentId` ou normaliza a citação, e antes isso
+ * derrubava pontos legítimos (ata quase vazia). Quando a citação é encontrada, o ponto é
+ * re-ancorado ao segmento que de fato a contém; se não existe em lugar nenhum, é rejeitado.
  */
 export function anchorPoint(point: ExtractedPoint, segments: TranscriptSegment[]): ExtractedPoint {
-  const segment = segments.find((s) => s.id === point.anchor.segmentId);
-  if (!segment) {
-    throw new AnchorError(`segmento "${point.anchor.segmentId}" não existe na transcrição`);
+  const needle = normalizeForMatch(point.anchor.quote);
+  if (needle === '') {
+    throw new AnchorError('citação vazia');
   }
-  if (!segment.text.includes(point.anchor.quote)) {
-    throw new AnchorError(`citação não encontrada no segmento "${segment.id}"`);
+  const match = segments.find((s) => normalizeForMatch(s.text).includes(needle));
+  if (!match) {
+    throw new AnchorError(`citação "${point.anchor.quote}" não encontrada em nenhum segmento`);
   }
-  return { ...point, anchor: { ...point.anchor } };
+  return { ...point, anchor: { ...point.anchor, segmentId: match.id } };
 }
 
 export function movePoint(point: ExtractedPoint, sectionId: string): ExtractedPoint {

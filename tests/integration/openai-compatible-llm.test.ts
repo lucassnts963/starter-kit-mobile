@@ -58,7 +58,7 @@ describe('OpenAiCompatibleLlmProvider (DeepSeek, OpenRouter, NVIDIA NIM — REQ-
     expect(url).toBe('https://api.deepseek.com/v1/chat/completions');
     expect(init.headers['Authorization']).toBe('Bearer dsk');
     expect(init.body).toContain('deepseek-chat');
-    expect(init.body).toContain('somente trechos literais');
+    expect(init.body).toContain('CURTO e LITERAL');
   });
 
   it('should expose the configured id (used by the provider catalog)', () => {

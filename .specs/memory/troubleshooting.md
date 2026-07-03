@@ -200,6 +200,32 @@ nativo/bundled do `whatwg-fetch`, então grep local não encontra).
 por `XMLHttpRequest`, nunca por `fetch` — documentar essa regra no `HttpClient` do projeto
 (`createHttpClient`) para não reintroduzir o bug ao "simplificar" para fetch puro no futuro.
 
+## TRB-006: Ata/requisitos quase vazios — validação de âncora exata derruba pontos legítimos do LLM
+
+- **Date:** 2026-07-03 · **Related:** CHG-002 (qualidade de extração), REQ-05 · **Status:** resolved
+
+**Sintoma:** A ata e os requisitos saem quase vazios (poucos ou nenhum bullet) mesmo com transcrição
+boa e reunião com bastante conteúdo. O LLM (testado com OpenAI GPT) responde pontos, mas quase todos
+somem antes de virar ata.
+**Context:** `anchorPoint` (`src/domain/extracted-point.ts`) validava cada ponto extraído exigindo
+que `anchor.quote` estivesse contido via `String.includes` **exato** no segmento cujo id o LLM
+informou (`anchor.segmentId`). Cada ponto que falhava era descartado silenciosamente (no `LiveAssist`
+conta em `dropped`; no lote do `RefinementService`, sumia sem rastro).
+**Causa:** o casamento exato é frágil demais para saída de LLM: (1) o modelo normaliza a citação
+(capitalização, espaços, aspas/ponto final ao redor) e o `includes` sensível a isso falha; (2) o
+modelo erra o `segmentId` (aponta o segmento vizinho) mesmo quando a citação é real noutro segmento.
+Nos dois casos o ponto era legítimo (não-alucinado) mas caía, esvaziando a ata.
+**Solução:** `anchorPoint` passou a (a) normalizar citação e texto do segmento para comparar
+(minúsculas, espaços colapsados, pontuação de borda removida — acentos preservados) e (b) procurar a
+citação em TODOS os segmentos, re-ancorando o ponto ao segmento que de fato a contém. A garantia
+anti-alucinação (REQ-05) é preservada: se a citação não existe em segmento nenhum, o ponto ainda é
+rejeitado. Prompt de extração também reforçado (pedir citação curta 5–15 palavras literal + ser
+abrangente). **O que NÃO era a causa:** o LLM em si / o provedor — a extração vinha ok, o filtro é que
+descartava; trocar de modelo não resolveria.
+**Prevention:** ao validar saída de LLM contra um texto-fonte (âncora, citação, grounding), nunca usar
+comparação exata sensível a caso/espaço/pontuação nem confiar num índice/id que o modelo informou —
+normalizar e buscar no corpo inteiro. Match exato aparece como "resultado quase vazio", não como erro.
+
 <!--
 Template — copy this block, replace TRB-NNN with the next sequential number, and fill in:
 

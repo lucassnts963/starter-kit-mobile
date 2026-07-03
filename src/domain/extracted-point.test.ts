@@ -48,6 +48,72 @@ describe('extracted point anchoring (TEST-06)', () => {
     ).toThrow(AnchorError);
   });
 
+  it('should match the quote ignoring case and whitespace differences (LLM normaliza a citação)', () => {
+    const point = anchorPoint(
+      {
+        id: 'p1',
+        sectionId: 'functional-requirements',
+        text: 'Gravação longa',
+        anchor: { segmentId: 's1', quote: 'Gravar  Reuniões de duas horas' },
+      },
+      segments,
+    );
+    expect(point.anchor.segmentId).toBe('s1');
+  });
+
+  it('should re-anchor to the segment that actually contains the quote when the LLM points to the wrong one', () => {
+    const point = anchorPoint(
+      {
+        id: 'p1',
+        sectionId: 'functional-requirements',
+        text: 'Export em markdown',
+        anchor: { segmentId: 's1', quote: 'exportar a ata em markdown' },
+      },
+      segments,
+    );
+    expect(point.anchor.segmentId).toBe('s2');
+  });
+
+  it('should re-anchor even when the given segmentId does not exist, if the quote is real', () => {
+    const point = anchorPoint(
+      {
+        id: 'p1',
+        sectionId: 'functional-requirements',
+        text: 'Gravação longa',
+        anchor: { segmentId: 'inexistente', quote: 'gravar reuniões de duas horas' },
+      },
+      segments,
+    );
+    expect(point.anchor.segmentId).toBe('s1');
+  });
+
+  it('should tolerate surrounding punctuation on the quote', () => {
+    const point = anchorPoint(
+      {
+        id: 'p1',
+        sectionId: 'functional-requirements',
+        text: 'Export em markdown',
+        anchor: { segmentId: 's2', quote: '"exportar a ata em markdown."' },
+      },
+      segments,
+    );
+    expect(point.anchor.segmentId).toBe('s2');
+  });
+
+  it('should still reject a genuinely absent quote across all segments (anti-alucinação preservada)', () => {
+    expect(() =>
+      anchorPoint(
+        {
+          id: 'p1',
+          sectionId: 'functional-requirements',
+          text: 'Inventado',
+          anchor: { segmentId: 's1', quote: 'sincronizar com o google drive' },
+        },
+        segments,
+      ),
+    ).toThrow(AnchorError);
+  });
+
   it('should move a point to another section preserving the anchor', () => {
     const point = anchorPoint(
       {

@@ -52,7 +52,7 @@ describe('llm adapters contract (REQ-13)', () => {
     expect(url).toBe('https://api.openai.com/v1/chat/completions');
     expect(init.headers['Authorization']).toBe('Bearer sk');
     // instrução anti-alucinação viaja no prompt
-    expect(init.body).toContain('somente trechos literais');
+    expect(init.body).toContain('CURTO e LITERAL');
   });
 
   it('anthropic: should parse extraction candidates from a messages response', async () => {

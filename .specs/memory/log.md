@@ -224,3 +224,18 @@ Template — copy, set today's date, append at the bottom:
   numa reunião já transcrita (só gasta LLM); testar o provedor "Local — rascunho do aparelho" numa
   reunião gravada ao vivo. Spikes A-02/NFR-01 continuam pendentes.
 - **Refs:** CHG-002 (Notes), REQ-05, NFR-06.
+
+## 2026-07-03 — Qualidade de extração: âncora tolerante (ata deixou de sair vazia)
+
+- **Did:** Stakeholder reportou ata "quase vazia" com OpenAI apesar de boa transcrição. Causa
+  (TRB-006): `anchorPoint` validava a citação do LLM com `includes` exato no segmento exato apontado
+  — normalização ou segmentId errado do modelo derrubava pontos legítimos silenciosamente. Fix TDD:
+  comparação normalizada (case/espaço/pontuação de borda) + busca da citação em TODOS os segmentos,
+  re-ancorando ao que a contém; anti-alucinação (REQ-05) preservada. Prompt de extração reforçado
+  (citação curta 5–15 palavras literal, ser abrangente). 177 testes, tsc limpo.
+- **Learned:** validar saída de LLM contra texto-fonte com match exato sensível a caso/espaço/id do
+  modelo se manifesta como "resultado quase vazio", não como erro — normalizar e buscar no corpo
+  inteiro é a regra. Trocar de modelo não resolveria: o filtro é que descartava.
+- **Next:** stakeholder re-testar no aparelho (regerar ata numa reunião já transcrita e conferir se
+  agora popula). Se ainda faltar profundidade, avaliar formato mais rico na ata (resumo/decisões).
+- **Refs:** CHG-002 (Notes), TRB-006, REQ-05.

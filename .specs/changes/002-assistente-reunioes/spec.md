@@ -314,6 +314,12 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
   mesmo num tipo "só ata" (e vice-versa). "Ambos" faz UMA extração de LLM para os dois documentos
   (mais barato que dois cliques separados); gerar um só não toca o outro artefato já existente.
   Omitir `kinds` mantém o padrão do tipo (compatível com o refinamento automático). 172 testes.
+- **Qualidade de extração — âncora tolerante (2026-07-03, TRB-006):** stakeholder reportou ata "quase
+  vazia" com OpenAI. Causa: `anchorPoint` exigia citação idêntica (case/espaço/pontuação) no segmento
+  exato apontado pelo LLM, derrubando pontos legítimos. Fix: comparação normalizada + re-âncora em
+  qualquer segmento que contenha a citação (garantia anti-alucinação REQ-05 preservada: sem citação
+  real em lugar nenhum → rejeita). Prompt de extração reforçado (citação curta literal + abrangência).
+  177 testes.
 - **Spikes A-02/NFR-01: ainda pendentes de validação em aparelho.** A-02 teve um primeiro teste
   informal (áudio de reunião real tocado com volume baixo, ambiente com outras pessoas) que produziu
   rascunho ao vivo e permitiu completar o refinamento — mas o stakeholder pediu para repetir em
