@@ -4,6 +4,7 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useServices } from '../../src/expo/services-context';
 import { shareMarkdown } from '../../src/expo/share-markdown';
 import { labeledText } from '../../src/domain/transcript';
+import { colors, fonts, radii, spacing, typeScale } from '../../src/components/ui/theme';
 import type { MeetingRecord } from '../../src/db/repository/meeting-repository';
 
 type Tab = 'minutes' | 'requirements' | 'transcript';
@@ -116,6 +117,7 @@ export default function ResultsScreen() {
               <TextInput
                 style={styles.renameInput}
                 placeholder={`Novo nome para "${renaming.from}"`}
+                placeholderTextColor={colors.mutedForeground}
                 value={renaming.to}
                 onChangeText={(to) => setRenaming({ ...renaming, to })}
                 autoFocus
@@ -136,27 +138,44 @@ export default function ResultsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  tabs: { flexDirection: 'row', gap: 8 },
-  tab: { flex: 1, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#ccc', alignItems: 'center' },
-  tabActive: { backgroundColor: '#2c3e50', borderColor: '#2c3e50' },
-  tabText: { color: '#333' },
-  tabTextActive: { color: 'white', fontWeight: 'bold' },
-  refine: { backgroundColor: '#1e8449', borderRadius: 8, padding: 12, alignItems: 'center', marginTop: 12 },
-  refineText: { color: 'white', fontWeight: 'bold' },
-  content: { flex: 1, marginTop: 12 },
-  markdown: { fontFamily: 'monospace', fontSize: 13, color: '#222' },
-  speakers: { marginTop: 12 },
-  speakersTitle: { fontWeight: '600', marginBottom: 6 },
-  speakerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  speakerChip: { backgroundColor: '#eef3f8', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
-  speakerChipActive: { backgroundColor: '#2c3e50' },
-  speakerChipText: { color: '#2c3e50' },
-  speakerChipTextActive: { color: 'white', fontWeight: 'bold' },
-  renameRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  renameInput: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8 },
-  renameButton: { backgroundColor: '#2c3e50', borderRadius: 8, padding: 10, justifyContent: 'center' },
-  renameButtonText: { color: 'white' },
-  export: { backgroundColor: '#2c3e50', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 12 },
-  exportText: { color: 'white', fontWeight: 'bold' },
+  container: { flex: 1, padding: spacing.md, backgroundColor: colors.background },
+  tabs: { flexDirection: 'row', gap: spacing.sm },
+  tab: {
+    flex: 1,
+    padding: spacing.sm + 2,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    backgroundColor: colors.card,
+  },
+  tabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tabText: { color: colors.secondaryForeground, fontFamily: fonts.sans },
+  tabTextActive: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
+  refine: { backgroundColor: colors.primary, borderRadius: radii.sm, padding: spacing.sm + 4, alignItems: 'center', marginTop: spacing.sm + 4 },
+  refineText: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
+  content: { flex: 1, marginTop: spacing.sm + 4 },
+  markdown: { fontFamily: fonts.mono, fontSize: typeScale.bodySm, color: colors.foreground },
+  speakers: { marginTop: spacing.sm + 4 },
+  speakersTitle: { fontFamily: fonts.sansSemiBold, color: colors.foreground, marginBottom: spacing.xs + 2 },
+  speakerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  speakerChip: { backgroundColor: colors.accentTint, borderRadius: radii.full, paddingHorizontal: spacing.sm + 4, paddingVertical: spacing.xs + 2, borderWidth: 1, borderColor: colors.accentTintBorder },
+  speakerChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  speakerChipText: { color: colors.accentSoft, fontFamily: fonts.mono, fontSize: typeScale.bodySm },
+  speakerChipTextActive: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
+  renameRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  renameInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    padding: spacing.sm,
+    color: colors.foreground,
+    fontFamily: fonts.sans,
+    backgroundColor: colors.card,
+  },
+  renameButton: { backgroundColor: colors.primary, borderRadius: radii.sm, padding: spacing.sm + 2, justifyContent: 'center' },
+  renameButtonText: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
+  export: { backgroundColor: colors.secondary, borderRadius: radii.sm, padding: spacing.md - 2, alignItems: 'center', marginTop: spacing.sm + 4, borderWidth: 1, borderColor: colors.border },
+  exportText: { color: colors.foreground, fontFamily: fonts.sansSemiBold },
 });

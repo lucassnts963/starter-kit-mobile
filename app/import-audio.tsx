@@ -1,41 +1,60 @@
-import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
 import { useServices } from '../src/expo/services-context';
-import { getProviderDescriptor } from '../src/adapters/provider-catalog';
 import { requirementsElicitationTemplate } from '../src/domain/templates/requirements-elicitation';
 import { genericMeetingTemplate } from '../src/domain/templates/generic-meeting';
-import { colors, fonts, radii, spacing, typeScale } from '../src/components/ui/theme';
+import { colors, fonts, radii, spacing } from '../src/components/ui/theme';
 
 const TYPES = [requirementsElicitationTemplate, genericMeetingTemplate];
 
-/** Criação de reunião: tipo + consentimento (C-04) + aviso de diarização (US-10.3). */
-export default function NewMeetingScreen() {
-  const { session, settings } = useServices();
+/** Importa uma reunião já gravada (arquivo de áudio existente) para refinamento — sem gravação ao vivo. */
+export default function ImportAudioScreen() {
+  const { session, recording } = useServices();
   const [title, setTitle] = useState('');
   const [typeId, setTypeId] = useState<string>(TYPES[0]!.id);
   const [consent, setConsent] = useState(false);
-  const [diarizationWarning, setDiarizationWarning] = useState(false);
+  const [file, setFile] = useState<{ uri: string; name: string } | null>(null);
+  const [importing, setImporting] = useState(false);
 
-  useEffect(() => {
-    settings.getSelectedProvider('stt-batch').then((id) => {
-      setDiarizationWarning(getProviderDescriptor(id).supportsDiarization === false);
-    });
-  }, [settings]);
-
-  const create = async () => {
-    const meeting = await session.createMeeting(title.trim() || 'Reunião sem título', typeId, consent);
-    router.replace({ pathname: '/session/[id]', params: { id: meeting.id } });
+  const pickFile = async () => {
+    const result = await DocumentPicker.getDocumentAsync({ type: 'audio/*' });
+    if (result.canceled || result.assets.length === 0) return;
+    const picked = result.assets[0]!;
+    setFile({ uri: picked.uri, name: picked.name });
+    if (title.trim() === '') setTitle(picked.name.replace(/\.[^.]+$/, ''));
   };
+
+  const importAndOpen = async () => {
+    if (!file) return;
+    setImporting(true);
+    try {
+      const meeting = await session.createMeeting(title.trim() || file.name, typeId, consent);
+      await recording.importAudio(meeting.id, file.uri);
+      router.replace({ pathname: '/results/[id]', params: { id: meeting.id } });
+    } catch (error) {
+      Alert.alert('Falha ao importar', error instanceof Error ? error.message : String(error));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const canImport = consent && file !== null && !importing;
 
   return (
     <View style={styles.container}>
+      <Text style={styles.label}>Arquivo de áudio</Text>
+      <Pressable style={styles.picker} onPress={pickFile}>
+        <Text style={styles.pickerText}>{file ? file.name : 'Selecionar arquivo (.m4a, .mp3, .wav…)'}</Text>
+      </Pressable>
+
       <Text style={styles.label}>Título</Text>
       <TextInput
         style={styles.input}
         value={title}
         onChangeText={setTitle}
-        placeholder="Ex.: Levantamento CRM"
+        placeholder="Ex.: Reunião de kickoff (gravada)"
         placeholderTextColor={colors.mutedForeground}
       />
 
@@ -50,15 +69,6 @@ export default function NewMeetingScreen() {
         </Pressable>
       ))}
 
-      {diarizationWarning ? (
-        <View style={styles.warning}>
-          <Text style={styles.warningText}>
-            O provedor de transcrição selecionado não identifica falantes (diarização). A ata sairá sem
-            nomes. Troque para o ElevenLabs Scribe nas Configurações se precisar disso.
-          </Text>
-        </View>
-      ) : null}
-
       <View style={styles.consentRow}>
         <Switch
           value={consent}
@@ -67,12 +77,12 @@ export default function NewMeetingScreen() {
           thumbColor={colors.foreground}
         />
         <Text style={styles.consentText}>
-          Confirmei com todos os participantes que a reunião será gravada e transcrita (LGPD).
+          Confirmei com todos os participantes que esta gravação será transcrita (LGPD).
         </Text>
       </View>
 
-      <Pressable style={[styles.primary, !consent && styles.disabled]} disabled={!consent} onPress={create}>
-        <Text style={styles.primaryText}>Criar e abrir sessão</Text>
+      <Pressable style={[styles.primary, !canImport && styles.disabled]} disabled={!canImport} onPress={importAndOpen}>
+        <Text style={styles.primaryText}>{importing ? 'Importando…' : 'Importar e refinar'}</Text>
       </Pressable>
     </View>
   );
@@ -81,6 +91,14 @@ export default function NewMeetingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: spacing.md, gap: spacing.sm, backgroundColor: colors.background },
   label: { fontFamily: fonts.sansSemiBold, color: colors.foreground, marginTop: spacing.sm },
+  picker: {
+    borderWidth: 1,
+    borderColor: colors.accentTintBorder,
+    borderRadius: radii.sm,
+    padding: spacing.sm + 4,
+    backgroundColor: colors.accentTint,
+  },
+  pickerText: { color: colors.accentSoft, fontFamily: fonts.sansMedium },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -101,10 +119,8 @@ const styles = StyleSheet.create({
   typeSelected: { borderColor: colors.primary, backgroundColor: colors.accentTint },
   typeText: { color: colors.foreground, fontFamily: fonts.sans },
   typeTextSelected: { color: colors.accentSoft, fontFamily: fonts.sansSemiBold },
-  warning: { backgroundColor: colors.accentTint, borderRadius: radii.sm, padding: spacing.sm + 2, marginTop: spacing.sm },
-  warningText: { color: colors.accentSoft, fontFamily: fonts.sans, fontSize: typeScale.bodySm },
   consentRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2, marginTop: spacing.md },
-  consentText: { flex: 1, color: colors.secondaryForeground, fontFamily: fonts.sans, fontSize: typeScale.bodySm },
+  consentText: { flex: 1, color: colors.secondaryForeground, fontFamily: fonts.sans, fontSize: 13 },
   primary: {
     backgroundColor: colors.primary,
     borderRadius: radii.sm,

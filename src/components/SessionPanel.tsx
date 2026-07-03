@@ -2,6 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { MeetingType } from '../domain/meeting-type';
 import type { Coverage, QuestionSuggestion } from '../domain/coverage';
+import { colors, fonts, radii, spacing, typeScale } from './ui/theme';
 
 export interface SessionPanelProps {
   type: MeetingType;
@@ -84,11 +85,11 @@ export function SessionPanel(props: SessionPanelProps) {
       <View style={styles.controls}>
         {props.status === 'recording' ? (
           <Pressable style={styles.control} onPress={props.onPause}>
-            <Text style={styles.controlText}>Pausar</Text>
+            <Text style={styles.controlTextGhost}>Pausar</Text>
           </Pressable>
         ) : (
           <Pressable style={styles.control} onPress={props.onResume}>
-            <Text style={styles.controlText}>Retomar</Text>
+            <Text style={styles.controlTextGhost}>Retomar</Text>
           </Pressable>
         )}
         <Pressable style={[styles.control, styles.end]} onPress={props.onEnd}>
@@ -100,23 +101,31 @@ export function SessionPanel(props: SessionPanelProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: { flex: 1, padding: spacing.md, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  recording: { color: '#c0392b', fontWeight: 'bold', fontSize: 16 },
-  paused: { color: '#7f8c8d', fontWeight: 'bold', fontSize: 16 },
-  banner: { backgroundColor: '#fdf3d0', borderRadius: 8, padding: 10, marginTop: 12 },
-  bannerText: { color: '#7a5d00' },
-  body: { flex: 1, marginTop: 12 },
-  draft: { color: '#555', fontStyle: 'italic', marginBottom: 12 },
-  emptyTitle: { fontWeight: 'bold', marginBottom: 8 },
-  sectionCovered: { color: '#1e8449', marginBottom: 4 },
-  sectionPending: { color: '#666', marginBottom: 4 },
-  suggestion: { backgroundColor: '#eef3f8', borderRadius: 8, padding: 10, marginTop: 8 },
-  suggestionSection: { fontSize: 12, color: '#5d6d7e' },
-  suggestionQuestion: { fontSize: 15, marginTop: 2 },
-  dismiss: { color: '#2471a3', marginTop: 6 },
-  controls: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  control: { flex: 1, backgroundColor: '#2c3e50', borderRadius: 8, padding: 14, alignItems: 'center' },
-  end: { backgroundColor: '#c0392b' },
-  controlText: { color: 'white', fontWeight: 'bold' },
+  recording: { color: colors.primary, fontFamily: fonts.sansSemiBold, fontSize: typeScale.h3 },
+  paused: { color: colors.mutedForeground, fontFamily: fonts.sansSemiBold, fontSize: typeScale.h3 },
+  banner: { backgroundColor: colors.accentTint, borderRadius: radii.sm, padding: spacing.sm + 2, marginTop: spacing.md },
+  bannerText: { color: colors.accentSoft, fontFamily: fonts.sans, fontSize: typeScale.bodySm },
+  body: { flex: 1, marginTop: spacing.md },
+  draft: { color: colors.secondaryForeground, fontFamily: fonts.sans, fontStyle: 'italic', marginBottom: spacing.md },
+  emptyTitle: { color: colors.foreground, fontFamily: fonts.sansSemiBold, marginBottom: spacing.sm },
+  sectionCovered: { color: colors.foreground, fontFamily: fonts.sansSemiBold, marginBottom: spacing.xs },
+  sectionPending: { color: colors.mutedForeground, fontFamily: fonts.sans, marginBottom: spacing.xs },
+  suggestion: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radii.sm, padding: spacing.sm + 2, marginTop: spacing.sm },
+  suggestionSection: { fontSize: typeScale.eyebrow, color: colors.mutedForeground, fontFamily: fonts.mono, textTransform: 'uppercase', letterSpacing: 0.5 },
+  suggestionQuestion: { fontSize: typeScale.body, color: colors.cardForeground, fontFamily: fonts.sans, marginTop: spacing.xs },
+  dismiss: { color: colors.accentSoft, fontFamily: fonts.sansMedium, marginTop: spacing.sm - 2 },
+  controls: { flexDirection: 'row', gap: spacing.sm + 4, marginTop: spacing.md },
+  control: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    padding: spacing.md - 2,
+    alignItems: 'center',
+  },
+  end: { backgroundColor: colors.primary, borderColor: colors.primary },
+  controlText: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
+  controlTextGhost: { color: colors.foreground, fontFamily: fonts.sansSemiBold },
 });

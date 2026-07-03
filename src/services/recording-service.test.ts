@@ -125,3 +125,33 @@ describe('segmented recording orchestration (TEST-23, REQ-01)', () => {
     expect(saved?.audioSegments).toEqual(['seg-001.m4a']); // o que já existia foi preservado
   });
 });
+
+describe('importing an already-recorded audio file (REQ-01 amendment: import)', () => {
+  let db: SqlDatabase;
+
+  beforeEach(() => {
+    db = createTestDatabase();
+  });
+
+  it('should register the picked file as the single audio segment and end the session, without touching the recorder', async () => {
+    const fake = fakeRecorder();
+    const { recording, meeting } = await makeServices(db, fake.recorder);
+
+    await recording.importAudio(meeting.id, 'content://downloads/reuniao-01.m4a');
+
+    const saved = await new MeetingRepository(db).findById(meeting.id);
+    expect(saved?.audioSegments).toEqual(['content://downloads/reuniao-01.m4a']);
+    expect(saved?.status).toBe('ended');
+    expect(fake.calls).toEqual([]); // não usa o microfone/gravador nativo
+  });
+
+  it('should enqueue refinement, same as a live recording', async () => {
+    const fake = fakeRecorder();
+    const { recording, meeting } = await makeServices(db, fake.recorder);
+
+    await recording.importAudio(meeting.id, 'content://downloads/reuniao-01.m4a');
+
+    const pending = await new RefinementQueueRepository(db).pending();
+    expect(pending.map((q) => q.meetingId)).toEqual([meeting.id]);
+  });
+});

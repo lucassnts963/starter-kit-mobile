@@ -3,6 +3,8 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { useServices } from '../src/expo/services-context';
 import { listProviders, type ProviderCapability } from '../src/adapters/provider-catalog';
 import { secureKeyStore } from '../src/expo/secure-key-store';
+import { Card } from '../src/components/ui/Card';
+import { colors, fonts, radii, spacing, typeScale } from '../src/components/ui/theme';
 
 const CAPABILITIES: { capability: ProviderCapability; title: string }[] = [
   { capability: 'stt-batch', title: 'Transcrição (pós-reunião)' },
@@ -46,7 +48,7 @@ export default function SettingsScreen() {
         <View key={capability} style={styles.section}>
           <Text style={styles.sectionTitle}>{title}</Text>
           {listProviders(capability).map((provider) => (
-            <View key={provider.id} style={styles.provider}>
+            <Card key={provider.id} style={styles.provider}>
               <Pressable
                 style={[styles.providerHeader, selected[capability] === provider.id && styles.providerSelected]}
                 onPress={() => select(capability, provider.id)}
@@ -65,6 +67,7 @@ export default function SettingsScreen() {
                 <TextInput
                   style={styles.keyInput}
                   placeholder="Chave de API (fica no aparelho, em armazenamento seguro)"
+                  placeholderTextColor={colors.mutedForeground}
                   secureTextEntry
                   value={keys[provider.id] ?? ''}
                   onChangeText={(v) => setKeys((k) => ({ ...k, [provider.id]: v }))}
@@ -73,7 +76,7 @@ export default function SettingsScreen() {
                   <Text style={styles.keyButtonText}>{savedFlash === provider.id ? 'Salva ✓' : 'Salvar'}</Text>
                 </Pressable>
               </View>
-            </View>
+            </Card>
           ))}
         </View>
       ))}
@@ -86,18 +89,27 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
-  provider: { marginBottom: 10 },
-  providerHeader: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12 },
-  providerSelected: { borderColor: '#2c3e50', backgroundColor: '#eef3f8' },
-  providerName: { color: '#333', fontWeight: '600' },
-  providerNameSelected: { color: '#2c3e50', fontWeight: 'bold' },
-  capability: { color: '#777', fontSize: 12, marginTop: 2 },
-  keyRow: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  keyInput: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 8 },
-  keyButton: { backgroundColor: '#2c3e50', borderRadius: 8, paddingHorizontal: 14, justifyContent: 'center' },
-  keyButtonText: { color: 'white' },
-  note: { color: '#777', fontSize: 12, marginBottom: 24 },
+  container: { flex: 1, padding: spacing.md, backgroundColor: colors.background },
+  section: { marginBottom: spacing.lg - 4 },
+  sectionTitle: { fontFamily: fonts.sansSemiBold, fontSize: typeScale.body, color: colors.foreground, marginBottom: spacing.sm },
+  provider: { marginBottom: spacing.sm + 2, padding: spacing.sm + 4 },
+  providerHeader: { borderRadius: radii.sm },
+  providerSelected: {},
+  providerName: { color: colors.foreground, fontFamily: fonts.sansMedium },
+  providerNameSelected: { color: colors.accentSoft, fontFamily: fonts.sansSemiBold },
+  capability: { color: colors.mutedForeground, fontSize: typeScale.eyebrow, fontFamily: fonts.mono, marginTop: 2 },
+  keyRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm - 2 },
+  keyInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    padding: spacing.sm,
+    color: colors.foreground,
+    fontFamily: fonts.sans,
+    backgroundColor: colors.background,
+  },
+  keyButton: { backgroundColor: colors.primary, borderRadius: radii.sm, paddingHorizontal: spacing.md - 2, justifyContent: 'center' },
+  keyButtonText: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
+  note: { color: colors.mutedForeground, fontSize: typeScale.bodySm, fontFamily: fonts.sans, marginBottom: spacing.xl - 8 },
 });

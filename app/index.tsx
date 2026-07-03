@@ -3,6 +3,8 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { router, useFocusEffect } from 'expo-router';
 import { useServices } from '../src/expo/services-context';
 import { filterMeetings } from '../src/services/history-filter';
+import { Card } from '../src/components/ui/Card';
+import { colors, fonts, radii, spacing, typeScale } from '../src/components/ui/theme';
 import type { MeetingRecord } from '../src/db/repository/meeting-repository';
 
 /** Home: histórico com busca (REQ-09) + nova reunião. Hook fino — lógica nos services. */
@@ -32,29 +34,36 @@ export default function HomeScreen() {
       <TextInput
         style={styles.search}
         placeholder="Buscar por título ou data (YYYY-MM-DD)"
+        placeholderTextColor={colors.mutedForeground}
         value={search}
         onChangeText={setSearch}
       />
       <FlatList
         data={filtered}
         keyExtractor={(m) => m.id}
+        ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListEmptyComponent={
           <Text style={styles.empty}>
             {all.length === 0 ? 'Nenhuma reunião ainda. Crie a primeira!' : 'Nada encontrado.'}
           </Text>
         }
         renderItem={({ item }) => (
-          <Pressable style={styles.item} onPress={() => open(item)}>
-            <Text style={styles.itemTitle}>{item.title}</Text>
-            <Text style={styles.itemMeta}>
-              {item.createdAt.slice(0, 10)} · {statusLabel(item.status)}
-            </Text>
+          <Pressable onPress={() => open(item)}>
+            <Card style={styles.item}>
+              <Text style={styles.itemTitle}>{item.title}</Text>
+              <Text style={styles.itemMeta}>
+                {item.createdAt.slice(0, 10)} · {statusLabel(item.status)}
+              </Text>
+            </Card>
           </Pressable>
         )}
       />
       <View style={styles.footer}>
         <Pressable style={styles.secondary} onPress={() => router.push('/settings')}>
           <Text style={styles.secondaryText}>Configurações</Text>
+        </Pressable>
+        <Pressable style={styles.secondary} onPress={() => router.push('/import-audio')}>
+          <Text style={styles.secondaryText}>Importar áudio</Text>
         </Pressable>
         <Pressable style={styles.primary} onPress={() => router.push('/new-meeting')}>
           <Text style={styles.primaryText}>Nova reunião</Text>
@@ -77,15 +86,37 @@ function statusLabel(status: MeetingRecord['status']): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  search: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 12 },
-  empty: { textAlign: 'center', color: '#777', marginTop: 40 },
-  item: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ddd' },
-  itemTitle: { fontSize: 16, fontWeight: '600' },
-  itemMeta: { color: '#777', marginTop: 2 },
-  footer: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  primary: { flex: 1, backgroundColor: '#2c3e50', borderRadius: 8, padding: 14, alignItems: 'center' },
-  primaryText: { color: 'white', fontWeight: 'bold' },
-  secondary: { flex: 1, borderWidth: 1, borderColor: '#2c3e50', borderRadius: 8, padding: 14, alignItems: 'center' },
-  secondaryText: { color: '#2c3e50', fontWeight: 'bold' },
+  container: { flex: 1, padding: spacing.md, backgroundColor: colors.background },
+  search: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    padding: spacing.sm + 2,
+    marginBottom: spacing.md,
+    color: colors.foreground,
+    fontFamily: fonts.sans,
+    backgroundColor: colors.card,
+  },
+  empty: { textAlign: 'center', color: colors.mutedForeground, marginTop: 40, fontFamily: fonts.sans },
+  item: { padding: spacing.md },
+  itemTitle: { fontSize: typeScale.body, fontFamily: fonts.sansSemiBold, color: colors.cardForeground },
+  itemMeta: { color: colors.mutedForeground, marginTop: 2, fontFamily: fonts.mono, fontSize: typeScale.eyebrow },
+  footer: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  primary: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    borderRadius: radii.sm,
+    padding: spacing.md - 2,
+    alignItems: 'center',
+  },
+  primaryText: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
+  secondary: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    padding: spacing.md - 2,
+    alignItems: 'center',
+  },
+  secondaryText: { color: colors.foreground, fontFamily: fonts.sansSemiBold },
 });

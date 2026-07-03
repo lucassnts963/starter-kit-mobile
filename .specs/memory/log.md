@@ -161,3 +161,24 @@ Template — copy, set today's date, append at the bottom:
   aparelho a correção de UX do `labeledText` (feita após o último rebuild desta sessão, ainda não
   testada); depois fechar o checklist do CHG-002.
 - **Refs:** CHG-002, TRB-002, TRB-003, TRB-004, TRB-005.
+
+## 2026-07-03 — Design system elucas.dev + importar áudio já gravado
+
+- **Did:** Portado o handoff de design (claude.ai/design, "elucas.dev" — dark, acento vermelho único,
+  IBM Plex Sans/Mono) pro RN: `src/components/ui/theme.ts` (tokens) e primitivos `Card`/`Avatar`/
+  `Separator`/`Sheet`, com testes RTL. Fontes via `@expo-google-fonts` carregadas em `_layout.tsx`
+  (splash screen até carregar). Reskin de todas as 5 telas existentes — trocado cor/tipografia
+  ad-hoc pelos tokens; onde o app tinha um segundo acento (verde de sucesso, azul de link) unificado
+  pro vermelho único, seguindo a regra do brand kit de nunca introduzir uma terceira cor paralela.
+  Nova feature: importar áudio de reunião já gravada — `RecordingService.importAudio` (TDD, pula o
+  gravador nativo: `start→addAudioSegment→end` direto) e tela `app/import-audio.tsx`
+  (`expo-document-picker` + mesmo fluxo de consentimento/tipo do `new-meeting.tsx`), com entrada na
+  home. 151 testes, `tsc --noEmit` limpo.
+- **Learned:** o brand kit do handoff proíbe explicitamente uma segunda cor de acento ("no parallel
+  blue/green/purple") — ao portar telas que já tinham semântica de cor (verde=sucesso, azul=link),
+  a disciplina certa é diferenciar por peso/espaço/label, não introduzir uma exceção "só dessa vez".
+- **Next:** validar o reskin e a importação de áudio em aparelho físico (pendente, junto dos spikes
+  A-02/NFR-01 já registrados). Avaliar (a pedido do stakeholder) LLMs locais e provedores gratuitos/
+  baratos adicionais (DeepSeek, OpenRouter, NVIDIA build) e modelos de STT gratuitos — registro
+  separado quando a avaliação terminar.
+- **Refs:** CHG-002 (fora de fatia — trabalho posterior ao MVP), design handoff "elucas.dev".

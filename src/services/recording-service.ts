@@ -41,4 +41,14 @@ export class RecordingService {
     }
     await this.deps.session.end(meetingId);
   }
+
+  /**
+   * Registra um arquivo de áudio já existente (escolhido pelo usuário) como o único
+   * segmento da sessão e encerra direto para refinamento — não usa o gravador nativo.
+   */
+  async importAudio(meetingId: string, filePath: string): Promise<void> {
+    await this.deps.session.start(meetingId);
+    await this.deps.session.addAudioSegment(meetingId, filePath);
+    await this.deps.session.end(meetingId);
+  }
 }
