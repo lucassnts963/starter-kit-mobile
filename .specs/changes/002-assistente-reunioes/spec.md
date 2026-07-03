@@ -308,6 +308,12 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
   `local-draft` ("Local — rascunho do aparelho") promove o rascunho do STT nativo a base final sem
   nenhuma chamada de rede — custo zero, sem diarização (aviso automático via capability flag), erro
   claro em reunião importada sem rascunho. 169 testes.
+- **Geração de artefatos sob demanda (2026-07-03):** a geração deixou de ser travada no tipo da
+  reunião — `regenerateArtifacts(meetingId, kinds?)` aceita `['minutes']`, `['requirements']` ou
+  ambos, com três botões na tela de resultados (Ata / Requisitos / Ambos). Permite gerar requisitos
+  mesmo num tipo "só ata" (e vice-versa). "Ambos" faz UMA extração de LLM para os dois documentos
+  (mais barato que dois cliques separados); gerar um só não toca o outro artefato já existente.
+  Omitir `kinds` mantém o padrão do tipo (compatível com o refinamento automático). 172 testes.
 - **Spikes A-02/NFR-01: ainda pendentes de validação em aparelho.** A-02 teve um primeiro teste
   informal (áudio de reunião real tocado com volume baixo, ambiente com outras pessoas) que produziu
   rascunho ao vivo e permitiu completar o refinamento — mas o stakeholder pediu para repetir em

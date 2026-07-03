@@ -51,12 +51,13 @@ export default function ResultsScreen() {
     }
   };
 
-  // re-roda só o LLM + builders sobre a transcrição final existente — sem custo de STT
-  const regenerate = async () => {
+  // re-roda só o LLM + builders sobre a transcrição final existente — sem custo de STT.
+  // kinds escolhe o que gerar: só ata, só requisitos, ou ambos (ambos = 1 extração de LLM).
+  const regenerate = async (kinds: ('minutes' | 'requirements')[]) => {
     setRefreshing(true);
     try {
       const refinement = await services.createRefinement();
-      const result = await refinement.regenerateArtifacts(id!);
+      const result = await refinement.regenerateArtifacts(id!, kinds);
       if (!result.ok) Alert.alert('Regeneração falhou', result.error ?? 'erro desconhecido');
       await load();
     } finally {
@@ -106,11 +107,24 @@ export default function ResultsScreen() {
       ) : null}
 
       {meeting?.status === 'done' ? (
-        <Pressable style={styles.regenerate} onPress={regenerate} disabled={refreshing}>
-          <Text style={styles.regenerateText}>
-            {refreshing ? 'Regenerando…' : 'Regerar ata/requisitos (só LLM — não re-transcreve)'}
-          </Text>
-        </Pressable>
+        <View style={styles.regenGroup}>
+          <Text style={styles.regenLabel}>Gerar sob demanda (só LLM — não re-transcreve):</Text>
+          <View style={styles.regenRow}>
+            <Pressable style={styles.regenBtn} onPress={() => regenerate(['minutes'])} disabled={refreshing}>
+              <Text style={styles.regenText}>Ata</Text>
+            </Pressable>
+            <Pressable style={styles.regenBtn} onPress={() => regenerate(['requirements'])} disabled={refreshing}>
+              <Text style={styles.regenText}>Requisitos</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.regenBtn, styles.regenBtnBoth]}
+              onPress={() => regenerate(['minutes', 'requirements'])}
+              disabled={refreshing}
+            >
+              <Text style={styles.regenTextBoth}>Ambos</Text>
+            </Pressable>
+          </View>
+        </View>
       ) : null}
 
       <ScrollView style={styles.content}>
@@ -175,16 +189,21 @@ const styles = StyleSheet.create({
   tabTextActive: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
   refine: { backgroundColor: colors.primary, borderRadius: radii.sm, padding: spacing.sm + 4, alignItems: 'center', marginTop: spacing.sm + 4 },
   refineText: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
-  regenerate: {
+  regenGroup: { marginTop: spacing.sm + 4, gap: spacing.xs + 2 },
+  regenLabel: { color: colors.mutedForeground, fontFamily: fonts.sans, fontSize: typeScale.bodySm },
+  regenRow: { flexDirection: 'row', gap: spacing.sm },
+  regenBtn: {
+    flex: 1,
     backgroundColor: colors.accentTint,
     borderWidth: 1,
     borderColor: colors.accentTintBorder,
     borderRadius: radii.sm,
-    padding: spacing.sm + 4,
+    padding: spacing.sm + 2,
     alignItems: 'center',
-    marginTop: spacing.sm + 4,
   },
-  regenerateText: { color: colors.accentSoft, fontFamily: fonts.sansSemiBold },
+  regenBtnBoth: { backgroundColor: colors.primary, borderColor: colors.primary },
+  regenText: { color: colors.accentSoft, fontFamily: fonts.sansSemiBold },
+  regenTextBoth: { color: colors.primaryForeground, fontFamily: fonts.sansSemiBold },
   content: { flex: 1, marginTop: spacing.sm + 4 },
   markdown: { fontFamily: fonts.mono, fontSize: typeScale.bodySm, color: colors.foreground },
   speakers: { marginTop: spacing.sm + 4 },

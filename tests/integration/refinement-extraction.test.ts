@@ -34,15 +34,16 @@ function anchoredLlm() {
     async extractPoints(input) {
       calls += 1;
       const first = input.transcript[0]!;
+      const sectionId = input.sections[0]!.id; // LLM real extrai nas seções que recebe
       return [
         {
-          sectionId: 'problem',
+          sectionId,
           text: 'Requisitos se perdem em reunião',
           anchor: { segmentId: first.segmentId, quote: 'perder requisitos' },
         },
         {
           // âncora inventada — deve ser descartada pela validação anti-alucinação
-          sectionId: 'risks',
+          sectionId,
           text: 'Ponto alucinado',
           anchor: { segmentId: 'nao-existe', quote: 'nunca dito' },
         },
@@ -184,6 +185,62 @@ describe('regenerateArtifacts: re-roda só o passo do LLM, sem STT (economia de 
     const result = await makeService(db, provider, llm).regenerateArtifacts('m1');
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/final/i);
+  });
+
+  it('should generate only the minutes when asked, leaving requirements untouched', async () => {
+    const { provider } = countingProvider();
+    const { llm } = anchoredLlm();
+    const service = makeService(db, provider, llm);
+    await service.processQueue();
+    // apaga os artefatos pra provar que só a ata é (re)criada
+    await new ArtifactRepository(db).save('m1', 'requirements', 'REQ ANTIGO', '2026-07-03T12:00:00.000Z');
+
+    const result = await service.regenerateArtifacts('m1', ['minutes']);
+    expect(result.ok).toBe(true);
+
+    const minutes = await new ArtifactRepository(db).findByMeetingAndKind('m1', 'minutes');
+    const reqs = await new ArtifactRepository(db).findByMeetingAndKind('m1', 'requirements');
+    expect(minutes?.markdown).toContain('Requisitos se perdem em reunião');
+    expect(reqs?.markdown).toBe('REQ ANTIGO'); // não foi tocado
+  });
+
+  it('should generate only the requirements even for a minutes-only meeting type', async () => {
+    // reunião do tipo genérico (output: minutes) — mesmo assim gera requisitos sob demanda
+    await new MeetingRepository(db).save({
+      id: 'm2',
+      title: 'Genérica',
+      typeId: 'generic-meeting',
+      status: 'done',
+      consentConfirmed: true,
+      createdAt: '2026-07-03T10:00:00.000Z',
+      audioSegments: ['a.m4a'],
+    });
+    await new TranscriptRepository(db).saveMany('m2', [
+      { id: 'f1', kind: 'final', text: 'o problema é perder requisitos', startMs: 0, endMs: 2000 },
+    ]);
+    const { provider } = countingProvider();
+    const { llm } = anchoredLlm();
+
+    const result = await makeService(db, provider, llm).regenerateArtifacts('m2', ['requirements']);
+    expect(result.ok).toBe(true);
+
+    const reqs = await new ArtifactRepository(db).findByMeetingAndKind('m2', 'requirements');
+    expect(reqs?.markdown).toContain('Requisitos se perdem em reunião');
+  });
+
+  it('should generate both with a single LLM extraction (economia vs. dois cliques)', async () => {
+    const { provider } = countingProvider();
+    const { llm, callCount } = anchoredLlm();
+    const service = makeService(db, provider, llm);
+    await service.processQueue();
+    const before = callCount();
+
+    const result = await service.regenerateArtifacts('m1', ['minutes', 'requirements']);
+    expect(result.ok).toBe(true);
+    expect(callCount() - before).toBe(1); // uma extração para os dois documentos
+
+    expect((await new ArtifactRepository(db).findByMeetingAndKind('m1', 'minutes'))?.markdown).toBeTruthy();
+    expect((await new ArtifactRepository(db).findByMeetingAndKind('m1', 'requirements'))?.markdown).toBeTruthy();
   });
 });
 

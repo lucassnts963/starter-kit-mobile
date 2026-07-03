@@ -9,7 +9,7 @@ import type { TranscriptSegment } from '../domain/transcript';
 import { MeetingNotFoundError, type MeetingRepository, type MeetingRecord } from '../db/repository/meeting-repository';
 import type { TranscriptRepository } from '../db/repository/transcript-repository';
 import type { PointRepository } from '../db/repository/point-repository';
-import type { ArtifactRepository } from '../db/repository/artifact-repository';
+import type { ArtifactKind, ArtifactRepository } from '../db/repository/artifact-repository';
 import type { RefinementQueueRepository } from '../db/repository/refinement-queue-repository';
 import { LOCAL_DRAFT_STT_ID, type LlmProvider, type SttBatchProvider } from '../adapters/provider-ports';
 import type { Clock, IdGenerator } from './ports';
@@ -56,8 +56,12 @@ export class RefinementService {
    * Re-roda SÓ o passo do LLM + builders sobre a base final existente — nenhuma chamada de
    * STT (economia de créditos). Substitui os pontos e regenera os artefatos; não mexe em
    * status nem na fila (a reunião já está `done`).
+   *
+   * `kinds` escolhe quais documentos gerar sob demanda, independente do tipo da reunião:
+   * `['minutes']`, `['requirements']` ou ambos. Gerar ambos faz UMA extração de LLM para os dois
+   * documentos (mais barato que dois cliques). Omisso → usa o padrão do tipo da reunião.
    */
-  async regenerateArtifacts(meetingId: string): Promise<RefinementResult> {
+  async regenerateArtifacts(meetingId: string, kinds?: ArtifactKind[]): Promise<RefinementResult> {
     try {
       const meeting = await this.deps.meetings.findById(meetingId);
       if (!meeting) throw new MeetingNotFoundError(meetingId);
@@ -76,11 +80,16 @@ export class RefinementService {
       } else {
         points = await this.deps.points.listByMeeting(meetingId);
       }
-      await this.saveArtifacts(meeting, type, finalSegments, points);
+      await this.saveArtifacts(meeting, type, finalSegments, points, kinds ?? this.defaultKinds(type));
       return { meetingId, ok: true };
     } catch (error) {
       return { meetingId, ok: false, error: error instanceof Error ? error.message : String(error) };
     }
+  }
+
+  /** Documentos que o tipo da reunião gera por padrão (comportamento do refinamento automático). */
+  private defaultKinds(type: MeetingType): ArtifactKind[] {
+    return type.output === 'minutes+requirements' ? ['minutes', 'requirements'] : ['minutes'];
   }
 
   private async processOne(meetingId: string): Promise<RefinementResult> {
@@ -106,7 +115,7 @@ export class RefinementService {
       if (points.length === 0 && this.deps.llm) {
         points = await this.extractFromFinal(meeting.id, type, finalSegments);
       }
-      await this.saveArtifacts(meeting, type, finalSegments, points);
+      await this.saveArtifacts(meeting, type, finalSegments, points, this.defaultKinds(type));
 
       await this.setStatus({ ...meeting, status: 'refining' }, 'completeRefinement');
       await this.deps.queue.remove(meeting.id);
@@ -180,14 +189,17 @@ export class RefinementService {
     type: MeetingType,
     finalSegments: TranscriptSegment[],
     points: ExtractedPoint[],
+    kinds: ArtifactKind[],
   ): Promise<void> {
     const meta = {
       title: meeting.title,
       date: meeting.createdAt.slice(0, 10),
       speakers: distinctSpeakers(finalSegments),
     };
-    await this.deps.artifacts.save(meeting.id, 'minutes', buildMinutes(meta, type, points), this.deps.clock.nowIso());
-    if (type.output === 'minutes+requirements') {
+    if (kinds.includes('minutes')) {
+      await this.deps.artifacts.save(meeting.id, 'minutes', buildMinutes(meta, type, points), this.deps.clock.nowIso());
+    }
+    if (kinds.includes('requirements')) {
       await this.deps.artifacts.save(
         meeting.id,
         'requirements',
