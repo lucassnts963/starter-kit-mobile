@@ -320,6 +320,14 @@ diarização garantida, multiusuário, i18n além de pt-BR, push automático par
   qualquer segmento que contenha a citação (garantia anti-alucinação REQ-05 preservada: sem citação
   real em lugar nenhum → rejeita). Prompt de extração reforçado (citação curta literal + abrangência).
   177 testes.
+- **Feedback dos botões sob demanda + áudio durável/player (2026-07-03):** ao gerar Ata/Requisitos/
+  Ambos, a tela troca para a aba do documento gerado e mostra quantos pontos foram extraídos (0
+  avisa que a transcrição/LLM não rendeu — antes "nada mudava"). `regenerateArtifacts` devolve
+  `extractedPoints`. Áudio "ouvir depois": `AudioFileStore.persist` copia cada segmento (gravação em
+  cache / URI importada `content://` transitória) para `document/audio/<meetingId>/` — durável até a
+  exclusão da reunião (REQ-10); `RecordingService` persiste em pause/stop/import (TDD). Player na tela
+  de resultados (`src/expo/AudioPlayer.tsx`, expo-audio, passthrough fora do coverage) toca os
+  segmentos em sequência com play/pause e barra de progresso. 179 testes.
 - **Spikes A-02/NFR-01: ainda pendentes de validação em aparelho.** A-02 teve um primeiro teste
   informal (áudio de reunião real tocado com volume baixo, ambiente com outras pessoas) que produziu
   rascunho ao vivo e permitiu completar o refinamento — mas o stakeholder pediu para repetir em

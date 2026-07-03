@@ -18,6 +18,8 @@ export interface RefinementResult {
   meetingId: string;
   ok: boolean;
   error?: string;
+  /** Quantos pontos alimentaram os artefatos — 0 avisa o usuário que a ata sairá vazia. */
+  extractedPoints?: number;
 }
 
 interface Deps {
@@ -81,7 +83,7 @@ export class RefinementService {
         points = await this.deps.points.listByMeeting(meetingId);
       }
       await this.saveArtifacts(meeting, type, finalSegments, points, kinds ?? this.defaultKinds(type));
-      return { meetingId, ok: true };
+      return { meetingId, ok: true, extractedPoints: points.length };
     } catch (error) {
       return { meetingId, ok: false, error: error instanceof Error ? error.message : String(error) };
     }

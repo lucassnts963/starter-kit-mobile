@@ -22,6 +22,7 @@ function makeService(db: SqlDatabase) {
       deleteFiles: async (paths: string[]) => {
         deletedFiles.push(...paths);
       },
+      persist: async (uri: string) => uri,
     },
   });
   return { service, deletedFiles };

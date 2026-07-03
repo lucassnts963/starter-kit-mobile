@@ -85,7 +85,7 @@ export async function createContainer(): Promise<AppContainer> {
     artifacts,
     settings,
     session,
-    recording: new RecordingService({ session, recorder: createExpoRecorder() }),
+    recording: new RecordingService({ session, recorder: createExpoRecorder(), files: audioFileStore }),
     liveTranscription: new LiveTranscriptionService({
       session,
       recognizer: createExpoSpeechRecognizer(),

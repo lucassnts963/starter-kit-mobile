@@ -44,7 +44,7 @@ async function makeServices(db: SqlDatabase, recognizer: SpeechRecognizerPort) {
     queue: new RefinementQueueRepository(db),
     clock: { nowIso: () => '2026-07-03T12:00:00.000Z' },
     ids: { newId: () => `id-${++n}` },
-    files: { deleteFiles: async () => undefined },
+    files: { deleteFiles: async () => undefined, persist: async (uri: string) => uri },
   });
   const meeting = await session.createMeeting('Kickoff', 'requirements-elicitation', true);
   await session.start(meeting.id);

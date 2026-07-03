@@ -239,3 +239,19 @@ Template — copy, set today's date, append at the bottom:
 - **Next:** stakeholder re-testar no aparelho (regerar ata numa reunião já transcrita e conferir se
   agora popula). Se ainda faltar profundidade, avaliar formato mais rico na ata (resumo/decisões).
 - **Refs:** CHG-002 (Notes), TRB-006, REQ-05.
+
+## 2026-07-03 — Feedback dos botões de geração + áudio durável e player
+
+- **Did:** (1) Botões Ata/Requisitos/Ambos agora trocam pra aba gerada e mostram nº de pontos
+  extraídos (0 = avisa transcrição/LLM vazios) — resolve "nada muda na tela"; regenerateArtifacts
+  devolve extractedPoints. (2) Áudio durável: AudioFileStore.persist copia cada segmento (cache do
+  gravador / content:// importado) para document/audio/<meetingId>/, sobrevive até apagar a reunião;
+  RecordingService persiste em pause/stop/import (TDD). (3) Player na tela de resultados
+  (src/expo/AudioPlayer.tsx, expo-audio) toca os segmentos em sequência. 179 testes, tsc limpo.
+- **Learned:** "botão não faz nada" costuma ser falta de feedback visível, não bug de lógica —
+  trocar de aba + reportar contagem torna a ação óbvia. Gravação do expo-audio vai pro cache (volátil):
+  para "ouvir depois" é obrigatório copiar pro document dir; content:// de import é transitório e
+  também precisa ser copiado.
+- **Next:** validar em aparelho: reproduzir áudio de reunião gravada e de importada; conferir que a
+  contagem de pontos aparece ao gerar. Spikes A-02/NFR-01 seguem pendentes.
+- **Refs:** CHG-002 (Notes), REQ-10.

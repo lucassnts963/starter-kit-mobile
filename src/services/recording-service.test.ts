@@ -30,6 +30,16 @@ function fakeRecorder() {
 async function makeServices(db: SqlDatabase, recorder: RecorderPort) {
   await migrate(db);
   let n = 0;
+  const persisted: string[] = [];
+  const files = {
+    deleteFiles: async () => undefined,
+    // simula a cópia pra pasta durável: prefixa com o diretório do app
+    persist: async (uri: string) => {
+      const durable = `/app/audio/${uri.split('/').pop()}`;
+      persisted.push(durable);
+      return durable;
+    },
+  };
   const session = new MeetingSessionService({
     meetings: new MeetingRepository(db),
     transcripts: new TranscriptRepository(db),
@@ -37,10 +47,10 @@ async function makeServices(db: SqlDatabase, recorder: RecorderPort) {
     queue: new RefinementQueueRepository(db),
     clock: { nowIso: () => '2026-07-03T12:00:00.000Z' },
     ids: { newId: () => `id-${++n}` },
-    files: { deleteFiles: async () => undefined },
+    files,
   });
   const meeting = await session.createMeeting('Kickoff', 'requirements-elicitation', true);
-  return { session, recording: new RecordingService({ session, recorder }), meeting };
+  return { session, recording: new RecordingService({ session, recorder, files }), meeting, persisted };
 }
 
 describe('segmented recording orchestration (TEST-23, REQ-01)', () => {
@@ -61,7 +71,7 @@ describe('segmented recording orchestration (TEST-23, REQ-01)', () => {
     await recording.stop(meeting.id);
 
     const saved = await new MeetingRepository(db).findById(meeting.id);
-    expect(saved?.audioSegments).toEqual(['seg-001.m4a', 'seg-002.m4a']);
+    expect(saved?.audioSegments).toEqual(['/app/audio/seg-001.m4a', '/app/audio/seg-002.m4a']);
     expect(saved?.status).toBe('ended');
     expect(fake.calls).toEqual(['start', 'stop', 'start', 'stop']);
     void recorder;
@@ -122,7 +132,7 @@ describe('segmented recording orchestration (TEST-23, REQ-01)', () => {
 
     const saved = await new MeetingRepository(db).findById(meeting.id);
     expect(saved?.status).toBe('ended');
-    expect(saved?.audioSegments).toEqual(['seg-001.m4a']); // o que já existia foi preservado
+    expect(saved?.audioSegments).toEqual(['/app/audio/seg-001.m4a']); // o que já existia foi preservado
   });
 });
 
@@ -140,7 +150,7 @@ describe('importing an already-recorded audio file (REQ-01 amendment: import)', 
     await recording.importAudio(meeting.id, 'content://downloads/reuniao-01.m4a');
 
     const saved = await new MeetingRepository(db).findById(meeting.id);
-    expect(saved?.audioSegments).toEqual(['content://downloads/reuniao-01.m4a']);
+    expect(saved?.audioSegments).toEqual(['/app/audio/reuniao-01.m4a']);
     expect(saved?.status).toBe('ended');
     expect(fake.calls).toEqual([]); // não usa o microfone/gravador nativo
   });
@@ -153,5 +163,35 @@ describe('importing an already-recorded audio file (REQ-01 amendment: import)', 
 
     const pending = await new RefinementQueueRepository(db).pending();
     expect(pending.map((q) => q.meetingId)).toEqual([meeting.id]);
+  });
+
+  it('should copy the transient content:// URI into durable app storage (ouvir depois)', async () => {
+    const fake = fakeRecorder();
+    const { recording, meeting, persisted } = await makeServices(db, fake.recorder);
+
+    await recording.importAudio(meeting.id, 'content://downloads/reuniao-01.m4a');
+
+    expect(persisted).toEqual(['/app/audio/reuniao-01.m4a']);
+  });
+});
+
+describe('durable audio persistence for later playback (REQ-10)', () => {
+  let db: SqlDatabase;
+
+  beforeEach(() => {
+    db = createTestDatabase();
+  });
+
+  it('should persist each recorded segment to durable storage before registering it', async () => {
+    const fake = fakeRecorder();
+    const { recording, meeting, persisted } = await makeServices(db, fake.recorder);
+
+    await recording.start(meeting.id);
+    await recording.pause(meeting.id);
+    await recording.resume(meeting.id);
+    await recording.stop(meeting.id);
+
+    // ambos os segmentos foram copiados para a pasta durável do app
+    expect(persisted).toEqual(['/app/audio/seg-001.m4a', '/app/audio/seg-002.m4a']);
   });
 });

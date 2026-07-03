@@ -4,6 +4,7 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useServices } from '../../src/expo/services-context';
 import { shareMarkdown } from '../../src/expo/share-markdown';
 import { labeledText } from '../../src/domain/transcript';
+import { AudioPlayer } from '../../src/expo/AudioPlayer';
 import { colors, fonts, radii, spacing, typeScale } from '../../src/components/ui/theme';
 import type { MeetingRecord } from '../../src/db/repository/meeting-repository';
 
@@ -58,8 +59,19 @@ export default function ResultsScreen() {
     try {
       const refinement = await services.createRefinement();
       const result = await refinement.regenerateArtifacts(id!, kinds);
-      if (!result.ok) Alert.alert('Regeneração falhou', result.error ?? 'erro desconhecido');
+      if (!result.ok) {
+        Alert.alert('Regeneração falhou', result.error ?? 'erro desconhecido');
+        return;
+      }
+      setTab(kinds[0]!); // mostra o documento recém-gerado
       await load();
+      const n = result.extractedPoints ?? 0;
+      Alert.alert(
+        n > 0 ? 'Pronto' : 'Gerado, mas vazio',
+        n > 0
+          ? `${n} ponto(s) extraído(s) e documento(s) atualizado(s).`
+          : 'Nenhum ponto foi extraído da transcrição. Verifique se a transcrição tem conteúdo e se o LLM (Configurações) está correto.',
+      );
     } finally {
       setRefreshing(false);
     }
@@ -126,6 +138,8 @@ export default function ResultsScreen() {
           </View>
         </View>
       ) : null}
+
+      {meeting && meeting.audioSegments.length > 0 ? <AudioPlayer segments={meeting.audioSegments} /> : null}
 
       <ScrollView style={styles.content}>
         <Text style={styles.markdown}>{content ?? 'Ainda não gerado — rode o refinamento.'}</Text>

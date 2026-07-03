@@ -170,7 +170,7 @@ describe('regenerateArtifacts: re-roda só o passo do LLM, sem STT (economia de 
     await service.processQueue(); // refinamento completo (1 transcrição)
 
     const result = await service.regenerateArtifacts('m1');
-    expect(result).toEqual({ meetingId: 'm1', ok: true });
+    expect(result).toMatchObject({ meetingId: 'm1', ok: true });
     expect(callCount()).toBe(1); // nenhuma transcrição extra
 
     // pontos foram substituídos (não duplicados) e artefatos regenerados
