@@ -1,6 +1,6 @@
 import type { LlmExtractionInput, LlmPointCandidate, LlmProvider } from '../provider-ports';
 import { MissingApiKeyError, ProviderApiError } from '../errors';
-import { EXTRACTION_SYSTEM_PROMPT, parseCandidates } from './parse-candidates';
+import { buildExtractionPrompt, EXTRACTION_GUIDANCE, parseCandidates } from './parse-candidates';
 import type { LlmAdapterDeps } from './openai-llm';
 
 interface MessagesResponse {
@@ -31,7 +31,7 @@ export class AnthropicLlmProvider implements LlmProvider {
       body: JSON.stringify({
         model: this.model,
         max_tokens: 1024,
-        system: this.deps.extractionPrompt ?? EXTRACTION_SYSTEM_PROMPT,
+        system: buildExtractionPrompt(this.deps.extractionPrompt ?? EXTRACTION_GUIDANCE),
         messages: [{ role: 'user', content: JSON.stringify(input) }],
       }),
     });

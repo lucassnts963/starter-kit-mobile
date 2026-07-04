@@ -5,7 +5,7 @@ import {
   UnknownProviderError,
   type ProviderCapability,
 } from '../../adapters/provider-catalog';
-import { EXTRACTION_SYSTEM_PROMPT } from '../../adapters/llm/parse-candidates';
+import { EXTRACTION_GUIDANCE } from '../../adapters/llm/parse-candidates';
 
 const EXTRACTION_PROMPT_KEY = 'prompt.extraction';
 
@@ -41,13 +41,16 @@ export class SettingsRepository {
     await this.set(`provider.${capability}`, providerId);
   }
 
-  /** Prompt de extração configurável (REQ-13): custom do usuário ou o padrão embutido. */
+  /**
+   * Guidance de extração editável (REQ-13): só a parte "o que extrair". O contrato de formato/
+   * anti-alucinação é sempre injetado pelo código (buildExtractionPrompt), não fica aqui.
+   */
   async getExtractionPrompt(): Promise<string> {
     const custom = (await this.get(EXTRACTION_PROMPT_KEY))?.trim();
-    return custom && custom.length > 0 ? custom : EXTRACTION_SYSTEM_PROMPT;
+    return custom && custom.length > 0 ? custom : EXTRACTION_GUIDANCE;
   }
 
-  /** Prompt em branco cai no padrão (getter) — nunca deixa a extração sem instrução. */
+  /** Guidance em branco cai no padrão (getter) — nunca deixa a extração sem instrução. */
   async setExtractionPrompt(prompt: string): Promise<void> {
     await this.set(EXTRACTION_PROMPT_KEY, prompt);
   }

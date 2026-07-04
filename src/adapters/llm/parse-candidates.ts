@@ -33,11 +33,22 @@ export function parseCandidates(raw: string): LlmPointCandidate[] {
   return valid;
 }
 
-/** Instrução anti-alucinação compartilhada pelos provedores de LLM (REQ-05, risco §13). */
-export const EXTRACTION_SYSTEM_PROMPT = [
+/**
+ * Parte EDITÁVEL pelo usuário: o "o que extrair" (foco, abrangência, persona). É esta que a tela
+ * de Configurações salva. O contrato de formato/anti-alucinação abaixo é sempre anexado pelo código.
+ */
+export const EXTRACTION_GUIDANCE = [
   'Você extrai pontos objetivos de transcrições de reunião em pt-BR.',
   'Extraia TODOS os pontos relevantes — seja abrangente: decisões, requisitos, problemas,',
   'responsáveis, prazos, riscos e pendências. Prefira vários pontos curtos a poucos genéricos.',
+].join(' ');
+
+/**
+ * Contrato OBRIGATÓRIO (REQ-05, risco §13): formato de saída + regra de citação literal que o
+ * pipeline anti-alucinação exige. Injetado por `buildExtractionPrompt` em TODA extração,
+ * independentemente do que o usuário configurar — sem ele a ata sai vazia (âncora descarta tudo).
+ */
+export const EXTRACTION_FORMAT_CONTRACT = [
   'Classifique cada ponto na seção mais adequada dentre as fornecidas; use o sectionId',
   'exatamente como veio na lista de seções.',
   'O campo "text" é a sua síntese objetiva do ponto (pode reescrever, em pt-BR claro).',
@@ -47,3 +58,12 @@ export const EXTRACTION_SYSTEM_PROMPT = [
   'NÃO invente conteúdo nem infira além do que foi dito. Se nada for relevante, retorne lista vazia.',
   'Responda APENAS JSON no formato {"points":[{"sectionId","text","anchor":{"segmentId","quote"}}]}.',
 ].join(' ');
+
+/** Compõe o prompt final: guidance do usuário + contrato obrigatório (sempre injetado). */
+export function buildExtractionPrompt(guidance: string): string {
+  const g = guidance.trim() || EXTRACTION_GUIDANCE;
+  return `${g}\n\n${EXTRACTION_FORMAT_CONTRACT}`;
+}
+
+/** Prompt completo padrão (guidance padrão + contrato) — usado como fallback nos adapters. */
+export const EXTRACTION_SYSTEM_PROMPT = buildExtractionPrompt(EXTRACTION_GUIDANCE);

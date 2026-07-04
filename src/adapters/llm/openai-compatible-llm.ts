@@ -2,7 +2,7 @@ import type { LlmExtractionInput, LlmPointCandidate, LlmProvider } from '../prov
 import type { HttpClient } from '../http';
 import type { ApiKeyStore } from '../secure-keys';
 import { MissingApiKeyError, ProviderApiError } from '../errors';
-import { EXTRACTION_SYSTEM_PROMPT, parseCandidates } from './parse-candidates';
+import { buildExtractionPrompt, EXTRACTION_GUIDANCE, parseCandidates } from './parse-candidates';
 
 export interface LlmAdapterDeps {
   http: HttpClient;
@@ -47,7 +47,7 @@ export class OpenAiCompatibleLlmProvider implements LlmProvider {
         model: this.config.model,
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: this.deps.extractionPrompt ?? EXTRACTION_SYSTEM_PROMPT },
+          { role: 'system', content: buildExtractionPrompt(this.deps.extractionPrompt ?? EXTRACTION_GUIDANCE) },
           { role: 'user', content: JSON.stringify(input) },
         ],
       }),

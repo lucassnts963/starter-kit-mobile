@@ -271,3 +271,17 @@ Template — copy, set today's date, append at the bottom:
 - **Next:** validar em aparelho: tocar audio (com som agora), editar o prompt e conferir que a
   extracao muda. Spikes A-02/NFR-01 seguem pendentes.
 - **Refs:** CHG-002 (Notes), REQ-13.
+
+## 2026-07-03 — Prompt: separar guidance editável do contrato obrigatório injetado pelo código
+
+- **Did:** O prompt de extração agora tem duas partes: EXTRACTION_GUIDANCE (editável pelo usuário —
+  o "o que extrair") e EXTRACTION_FORMAT_CONTRACT (formato JSON + citação literal anti-alucinação,
+  OBRIGATÓRIO). buildExtractionPrompt(guidance) sempre anexa o contrato; os 3 adapters LLM chamam
+  buildExtractionPrompt, então o contrato entra em toda extração independentemente do que o usuário
+  salvar. Settings guarda/edita só a guidance; a tela mostra o contrato como read-only. 185 testes.
+- **Learned:** ao expor prompt de LLM pra edição do usuário, o contrato de saída que o parser/
+  validação exige NÃO pode ser editável — separar guidance (livre) de contract (injetado pelo código)
+  evita que o usuário quebre o pipeline sem querer. Foi o que o stakeholder pediu explicitamente.
+- **Next:** validar em aparelho: editar a guidance e conferir que a extração muda mas a ata continua
+  populando (contrato garante o formato). Spikes A-02/NFR-01 seguem pendentes.
+- **Refs:** CHG-002 (Notes), REQ-05, REQ-13.

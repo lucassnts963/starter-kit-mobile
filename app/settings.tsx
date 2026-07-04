@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useServices } from '../src/expo/services-context';
 import { listProviders, type ProviderCapability } from '../src/adapters/provider-catalog';
+import { EXTRACTION_FORMAT_CONTRACT } from '../src/adapters/llm/parse-candidates';
 import { secureKeyStore } from '../src/expo/secure-key-store';
 import { Card } from '../src/components/ui/Card';
 import { colors, fonts, radii, spacing, typeScale } from '../src/components/ui/theme';
@@ -103,15 +104,15 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Prompt de extração (avançado)</Text>
         <Text style={styles.promptHint}>
-          Instrução enviada ao assistente para extrair os pontos da reunião. Edite para focar no que
-          importa (ex.: só decisões e responsáveis). Peça sempre resposta em JSON com sectionId, text e
-          anchor.quote (citação literal) — senão a ata pode sair vazia.
+          Edite só a orientação do que extrair (foco, abrangência). Você não precisa se preocupar com
+          o formato: o app sempre acrescenta automaticamente as regras obrigatórias de JSON e citação
+          literal, então dá pra editar livremente sem quebrar a ata.
         </Text>
         <TextInput
           style={styles.promptInput}
           value={prompt}
           onChangeText={setPrompt}
-          placeholder="Prompt de extração…"
+          placeholder="Ex.: Extraia apenas decisões, responsáveis e prazos…"
           placeholderTextColor={colors.mutedForeground}
           multiline
           textAlignVertical="top"
@@ -124,6 +125,8 @@ export default function SettingsScreen() {
             <Text style={styles.keyButtonText}>{promptSaved ? 'Salvo ✓' : 'Salvar prompt'}</Text>
           </Pressable>
         </View>
+        <Text style={styles.contractLabel}>Sempre anexado pelo app (não editável):</Text>
+        <Text style={styles.contractText}>{EXTRACTION_FORMAT_CONTRACT}</Text>
       </View>
 
       <Text style={styles.note}>
@@ -179,6 +182,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   promptResetText: { color: colors.foreground, fontFamily: fonts.sansSemiBold },
+  contractLabel: { color: colors.mutedForeground, fontFamily: fonts.sansSemiBold, fontSize: typeScale.eyebrow, marginTop: spacing.sm, textTransform: 'uppercase', letterSpacing: 0.5 },
+  contractText: { color: colors.mutedForeground, fontFamily: fonts.mono, fontSize: typeScale.eyebrow, marginTop: spacing.xs, lineHeight: 16 },
   promptSave: {
     flex: 1,
     backgroundColor: colors.primary,

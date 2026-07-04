@@ -1,14 +1,30 @@
 import { createTestDatabase } from '../helpers/node-sqlite-database';
 import { migrate } from '../../src/db/migrations';
 import { SettingsRepository } from '../../src/db/repository/settings-repository';
-import { EXTRACTION_SYSTEM_PROMPT } from '../../src/adapters/llm/parse-candidates';
+import {
+  buildExtractionPrompt,
+  EXTRACTION_FORMAT_CONTRACT,
+  EXTRACTION_GUIDANCE,
+} from '../../src/adapters/llm/parse-candidates';
 
 describe('extraction prompt configurável (REQ-13 amendment)', () => {
-  it('should default to the built-in extraction prompt when the user never customized it', async () => {
+  it('should default to the editable guidance when the user never customized it', async () => {
     const db = createTestDatabase();
     await migrate(db);
     const settings = new SettingsRepository(db);
-    expect(await settings.getExtractionPrompt()).toBe(EXTRACTION_SYSTEM_PROMPT);
+    expect(await settings.getExtractionPrompt()).toBe(EXTRACTION_GUIDANCE);
+  });
+
+  it('should always inject the mandatory format contract, even for a custom guidance', () => {
+    const full = buildExtractionPrompt('Extraia apenas riscos.');
+    expect(full).toContain('Extraia apenas riscos.');
+    expect(full).toContain(EXTRACTION_FORMAT_CONTRACT);
+  });
+
+  it('should fall back to default guidance inside buildExtractionPrompt when guidance is blank', () => {
+    const full = buildExtractionPrompt('   ');
+    expect(full).toContain(EXTRACTION_GUIDANCE);
+    expect(full).toContain(EXTRACTION_FORMAT_CONTRACT);
   });
 
   it('should persist a custom prompt and read it back', async () => {
@@ -26,7 +42,7 @@ describe('extraction prompt configurável (REQ-13 amendment)', () => {
     const settings = new SettingsRepository(db);
 
     await settings.setExtractionPrompt('   ');
-    expect(await settings.getExtractionPrompt()).toBe(EXTRACTION_SYSTEM_PROMPT);
+    expect(await settings.getExtractionPrompt()).toBe(EXTRACTION_GUIDANCE);
   });
 
   it('should reset to the default prompt', async () => {
@@ -36,6 +52,6 @@ describe('extraction prompt configurável (REQ-13 amendment)', () => {
 
     await settings.setExtractionPrompt('algo custom');
     await settings.resetExtractionPrompt();
-    expect(await settings.getExtractionPrompt()).toBe(EXTRACTION_SYSTEM_PROMPT);
+    expect(await settings.getExtractionPrompt()).toBe(EXTRACTION_GUIDANCE);
   });
 });
